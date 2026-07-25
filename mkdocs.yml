@@ -1,0 +1,19 @@
+site_name: lumen-ourworldindata
+site_description: Chat with Our World In Data
+repo_url: https://github.com/holoviz-topics/lumen-ourworldindata
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle: {icon: material/weather-night, name: Dark mode}
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle: {icon: material/weather-sunny, name: Light mode}
+nav:
+  - Home: index.md
+  - Examples: examples.md
+markdown_extensions:
+  - admonition
+  - pymdownx.superfences
+  - tables
