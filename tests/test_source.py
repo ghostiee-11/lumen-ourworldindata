@@ -1,6 +1,7 @@
 from unittest.mock import Mock, patch
 
 import duckdb
+import httpx
 import pytest
 
 from lumen_owid.source import INITIALIZERS, OWIDSource, UnreadableDataset
@@ -71,3 +72,69 @@ def test_an_unreadable_dataset_raises_with_owids_reason():
          patch("lumen_owid.source.chart_table_metadata", return_value={"description": "d"}):
         with pytest.raises(UnreadableDataset, match="not redistributable"):
             source.add_chart("blocked-slug")
+
+
+def _batch_source(describe_results):
+    """An OWIDSource whose metadata fetches are stubbed and whose loads are recorded."""
+    source = OWIDSource()
+    loaded = []
+
+    def register(slug, metadata):
+        loaded.append(slug)
+        return source
+
+    with patch.object(OWIDSource, "_describe", side_effect=describe_results), \
+         patch.object(source, "_register_chart", side_effect=register):
+        _, failures = source.add_charts([slug for slug, _, _ in describe_results])
+    return loaded, failures
+
+
+def test_add_charts_loads_every_readable_slug():
+    loaded, failures = _batch_source([
+        ("life-expectancy", {"description": "d"}, None),
+        ("child-mortality", {"description": "d"}, None),
+    ])
+    assert loaded == ["life-expectancy", "child-mortality"]
+    assert failures == {}
+
+
+def test_add_charts_reports_a_bad_slug_without_dropping_the_batch():
+    """About 7% of OWID charts cannot be served, so one is not an exceptional case."""
+    loaded, failures = _batch_source([
+        ("life-expectancy", {"description": "d"}, None),
+        ("suicide-death-rates", None, "not redistributable"),
+        ("child-mortality", {"description": "d"}, None),
+    ])
+    assert loaded == ["life-expectancy", "child-mortality"]
+    assert failures == {"suicide-death-rates": "not redistributable"}
+
+
+def test_add_charts_survives_a_chart_that_documents_itself_but_blocks_its_data():
+    """OWID serves metadata.json for charts whose CSV it refuses, so both need guarding."""
+    source = OWIDSource()
+    with patch.object(
+        OWIDSource, "_describe", side_effect=[("blocked", {"description": "d"}, None)],
+    ), patch.object(
+        source, "_register_chart", side_effect=UnreadableDataset("not redistributable"),
+    ):
+        result, failures = source.add_charts(["blocked"])
+
+    assert result is source
+    assert failures == {"blocked": "not redistributable"}
+
+
+def test_add_charts_with_nothing_to_do_is_a_no_op():
+    source = OWIDSource()
+    result, failures = source.add_charts([])
+    assert result is source
+    assert failures == {}
+
+
+def test_describe_turns_a_fetch_failure_into_a_reason():
+    """It runs in a worker thread, where raising would abandon the rest of the batch."""
+    with patch(
+        "lumen_owid.source.chart_table_metadata", side_effect=httpx.ConnectError("down"),
+    ), patch("lumen_owid.source.explain_unreadable", return_value="unreachable"):
+        slug, metadata, error = OWIDSource._describe("some-slug")
+
+    assert (slug, metadata, error) == ("some-slug", None, "unreachable")
