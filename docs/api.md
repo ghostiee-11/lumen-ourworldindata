@@ -231,6 +231,35 @@ to country names otherwise. Rows matching no boundary, usually OWID aggregates s
 continents and income groups, are counted and reported beneath the map rather than dropped
 silently.
 
+### OWIDTimeSeries
+
+```python
+class OWIDTimeSeries(View)
+```
+
+`view_type: owid_time_series`. One measure over time, one line per country. The
+counterpart to the map: a map answers "who is high and who is low", a line answers
+"what changed".
+
+| Parameter | Default | Meaning |
+|---|---|---|
+| `value` | `None` | Column to plot. Defaults to the first numeric column |
+| `countries` | `[]` | Countries to plot. Empty means the best-covered ones |
+| `max_series` | `8` | Maximum number of lines |
+| `country` / `year` | `None` | Column names. Detected when unset |
+
+An OWID table carries every country it has data for, often over two hundred, so the
+series are capped and the omission is reported beneath the chart rather than hidden.
+
+!!! warning "What \"best covered\" selects for"
+    Ranking by observation count favours countries with long statistical records, which
+    on a historical series means wealthy ones. Life expectancy defaults to eight Western
+    European countries. Pass `countries` explicitly whenever the comparison matters.
+
+!!! note
+    The parameter is `max_series`, not `limit`, because `View.limit` already exists and
+    truncates rows.
+
 ## Analyses
 
 `Analysis` subclasses the model can invoke by name. `ANALYSES` exports all three as a list ready
