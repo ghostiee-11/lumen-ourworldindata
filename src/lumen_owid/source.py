@@ -8,7 +8,13 @@ import duckdb
 import httpx
 from lumen.sources.duckdb import DuckDBSource
 
-from .api import GRAPHER, chart_table_metadata, explain_unreadable, normalize_name
+from .api import (
+    GRAPHER,
+    align_column_docs,
+    chart_table_metadata,
+    explain_unreadable,
+    normalize_name,
+)
 
 # httpfs lets DuckDB range-read the remote CSV and parquet files without downloading.
 INITIALIZERS = ["INSTALL httpfs;", "LOAD httpfs;"]
@@ -135,6 +141,14 @@ class OWIDSource(DuckDBSource):
             self._connection.execute(f'CREATE OR REPLACE TABLE "{table}" AS ({expression})')
         except (duckdb.Error, httpx.HTTPStatusError) as error:
             raise UnreadableDataset(explain_unreadable(url, error)) from error
+        # Only now are the real column names known, and OWID's metadata does not use
+        # them, so the per-column documentation has to be re-keyed onto the table.
+        if "columns" in resolved:
+            described = self._connection.execute(f'DESCRIBE "{table}"').fetchall()
+            resolved = {
+                **resolved,
+                "columns": align_column_docs(resolved["columns"], [row[0] for row in described]),
+            }
         # create_sql_expr_source unions the new table with those already loaded and
         # returns a source of this same type sharing the connection.
         return self.create_sql_expr_source(

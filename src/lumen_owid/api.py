@@ -10,6 +10,8 @@ from __future__ import annotations
 import httpx
 import pandas as pd
 
+from .utils import CODE_COLUMNS, COUNTRY_COLUMNS, YEAR_COLUMNS
+
 CHART_SEARCH = "https://ourworldindata.org/api/search"
 GRAPHER = "https://ourworldindata.org/grapher"
 INDICATOR_SEARCH = "https://search.owid.io/indicators"
@@ -94,6 +96,37 @@ def key_points(description_key: str | None, budget: int = KEY_POINT_TABLE_BUDGET
         points.append(point)
         used += len(point)
     return " ".join(points)
+
+
+def align_column_docs(docs: dict[str, str], columns: list[str]) -> dict[str, str]:
+    """Re-key column documentation onto the names the loaded table actually uses.
+
+    OWID keys its metadata by indicator title, but a chart CSV's headers are the
+    chart's display names, which it is free to override: "Period life expectancy at
+    birth" arrives as "Life expectancy", and the homelessness chart renames all three
+    of its indicators. Only about 58% of charts agree on the name, so documentation
+    keyed straight from the metadata describes columns that do not exist.
+
+    Exact matches are taken first. Whatever is left is aligned by position, which held
+    for 32 of 33 sampled charts once annotation columns are set aside. When the counts
+    disagree, as they do when a chart documents an indicator it does not plot, the
+    remainder is dropped: no documentation is better than documentation attached to
+    the wrong column.
+    """
+    aligned = {column: docs[column] for column in columns if column in docs}
+
+    # Identifier and annotation columns are never documented indicators, so they must
+    # not consume a position when aligning.
+    identifiers = set(COUNTRY_COLUMNS + YEAR_COLUMNS + CODE_COLUMNS)
+    remaining_columns = [
+        column for column in columns
+        if column not in aligned and column not in identifiers
+        and "(Annotations)" not in column
+    ]
+    remaining_docs = [text for name, text in docs.items() if name not in aligned]
+    if len(remaining_columns) == len(remaining_docs):
+        aligned.update(zip(remaining_columns, remaining_docs))
+    return aligned
 
 
 def chart_table_metadata(slug: str) -> dict:
