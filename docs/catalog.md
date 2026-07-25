@@ -79,6 +79,25 @@ hit to the catalog frame, which keeps every other part of the base class working
 The practical consequence: the browse table shows 100 charts, but the agent can reach all of
 them.
 
+## Countries and aggregates
+
+OWID mixes real countries with aggregates in the same table. On the UN population
+dataset there are 236 countries and 26 aggregates: continents, income groups, UN
+regions and groupings such as "Least developed countries".
+
+They are distinguishable by code length, since ISO alpha-3 is exactly three characters
+and every aggregate identifier is longer or absent:
+
+| Kind | Example | `Code` |
+|---|---|---|
+| Country | France | `FRA` |
+| OWID region | Africa | `OWID_AFR` |
+| UN region | Europe (UN) | `UN_EUR` |
+| Grouping | Least developed countries | *(blank)* |
+
+Use [`OnlyCountries`](api.md#onlycountries) to drop them. Chart tables only, since
+indicator parquets publish no code column.
+
 ## Column naming, and why it bites
 
 The two surfaces disagree about how to spell the key columns:

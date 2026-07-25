@@ -46,9 +46,14 @@ def indicator_payload():
 def owid_frame():
     """A small OWID-shaped table: long format, one row per country per year."""
     return pd.DataFrame({
-        "Entity": ["France", "France", "Japan", "Japan", "Norway"],
-        "Code": ["FRA", "FRA", "JPN", "JPN", "NOR"],
-        "Year": [2000, 2020, 2000, 2020, 2020],
-        "Rate": [10.0, 20.0, 5.0, 2.5, None],
-        "Population": [59.0, 67.0, 126.0, 125.0, 5.4],
+        "Entity": [
+            "France", "France", "Japan", "Japan", "Norway",
+            # OWID publishes aggregates in the same table as countries.
+            # OWID uses more than one aggregate prefix, and some have no code at all.
+            "Africa", "Least developed countries", "Europe (UN)",
+        ],
+        "Code": ["FRA", "FRA", "JPN", "JPN", "NOR", "OWID_AFR", "", "UN_EUR"],
+        "Year": [2000, 2020, 2000, 2020, 2020, 2020, 2020, 2020],
+        "Rate": [10.0, 20.0, 5.0, 2.5, None, 99.0, 88.0, 77.0],
+        "Population": [59.0, 67.0, 126.0, 125.0, 5.4, 1400.0, 1100.0, 750.0],
     })

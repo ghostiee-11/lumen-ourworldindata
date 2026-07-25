@@ -13,8 +13,8 @@ import param
 from lumen.ai.analysis import Analysis
 from lumen.pipeline import Pipeline
 
-from .operations import IndexToBaseYear, LatestPerCountry
-from .utils import country_column, value_columns, year_column
+from .operations import IndexToBaseYear, LatestPerCountry, OnlyCountries
+from .utils import code_column, country_column, value_columns, year_column
 from .views import OWIDChoropleth
 
 
@@ -55,12 +55,17 @@ class MapAcrossCountries(OWIDAnalysis):
         value = self.value or next(iter(values), None)
         if value is None:
             return pn.pane.Markdown("No numeric column to map.")
+        sql = LatestPerCountry(country=country, year=year, value=value).apply(
+            pipeline.source.get_sql_expr(pipeline.table)
+        )
+        # Continents and income groups have no boundary to draw, so they would only
+        # show up as a "did not match" tally under the map. Dropping them needs an
+        # ISO code, which chart tables have and indicator parquets do not.
+        code = code_column(pipeline.data)
+        if code is not None:
+            sql = OnlyCountries(code=code).apply(sql)
         table = f"{pipeline.table}_owid_mapped"
-        source = pipeline.source.create_sql_expr_source({
-            table: LatestPerCountry(country=country, year=year, value=value).apply(
-                pipeline.source.get_sql_expr(pipeline.table)
-            )
-        }, materialize=True)
+        source = pipeline.source.create_sql_expr_source({table: sql}, materialize=True)
         return OWIDChoropleth(pipeline=Pipeline(source=source, table=table), value=value)
 
 

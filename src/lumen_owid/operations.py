@@ -30,6 +30,34 @@ class OWIDTransform(SQLTransform):
     __abstract = True
 
 
+class OnlyCountries(OWIDTransform):
+    """Drop Our World In Data's aggregate rows, keeping actual countries.
+
+    OWID publishes continents, income groups and custom regions alongside countries in
+    the same table, so a cross-country comparison silently gains rows for "Africa" and
+    "High-income countries" unless they are removed. On the UN population dataset that
+    is 26 aggregates among 262 entities.
+
+    Aggregates are identified by code length. ISO alpha-3 is exactly three characters,
+    so anything else is a synthetic identifier: OWID's own regions (``OWID_AFR``), the
+    UN's (``UN_EUR``), or no code at all for groupings like "Least developed countries".
+    Matching on length rather than on a list of known prefixes means a prefix OWID adds
+    later is handled without a change here.
+
+    This is reliable on chart tables, which always publish a ``Code`` column, and
+    inapplicable to indicator parquets, which do not carry one. Use
+    :func:`lumen_owid.utils.code_column` to check before applying it.
+    """
+
+    code = param.String(default="Code", doc="""
+        Name of the column holding an ISO alpha-3 country code.""")
+
+    transform_type: ClassVar[str] = "owid_only_countries"
+
+    def apply(self, sql_in: str) -> str:
+        return f'SELECT * FROM ({sql_in}) WHERE length("{self.code}") = 3'
+
+
 class LatestPerCountry(OWIDTransform):
     """Keep only each country's most recent row.
 
