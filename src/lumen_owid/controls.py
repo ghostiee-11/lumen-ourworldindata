@@ -160,7 +160,13 @@ class OWIDControls(CatalogSourceControls):
         (fetch, source registration, progress) working unchanged.
         """
         for search, to_catalog in ((search_charts, charts_to_catalog), (search_indicators, indicators_to_catalog)):
-            hits = await asyncio.to_thread(search, query, 5)
+            try:
+                hits = await asyncio.to_thread(search, query, 5)
+            except httpx.HTTPError:
+                # The indicator service is a separate deployment under active
+                # development, so a failure there degrades to charts-only
+                # rather than taking the whole search down.
+                continue
             if hits.empty:
                 continue
             self.catalog_df = pd.concat(
