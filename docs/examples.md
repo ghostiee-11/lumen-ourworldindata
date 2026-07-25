@@ -50,6 +50,24 @@ else:
 source.get(entry.table_name).head()
 ```
 
+## Load several charts at once
+
+```python
+from lumen_owid import OWIDSource
+
+source, failures = OWIDSource().add_charts([
+    "life-expectancy",
+    "child-mortality",
+    "suicide-death-rates",     # blocked by OWID, so it lands in failures
+])
+
+source.get_tables()   # ['life_expectancy', 'child_mortality']
+failures              # {'suicide-death-rates': 'This chart contains non-redistributable...'}
+```
+
+Documentation is fetched concurrently, so this is faster than looping `add_chart`, and a
+slug OWID will not serve is reported rather than sinking the whole batch.
+
 ## Join two datasets
 
 Both surfaces land in the same DuckDB workspace, so this is ordinary SQL across two remote files

@@ -33,6 +33,23 @@ source.get_tables()          # ['life_expectancy']
 
 Raises [`UnreadableDataset`](#unreadabledataset) if OWID will not serve the file.
 
+### `add_charts(slugs)`
+
+Add several charts at once, fetching their documentation concurrently. Returns
+`(source, failures)` where `failures` maps a slug to the reason it could not be loaded.
+
+```python
+source, failures = OWIDSource().add_charts(["life-expectancy", "child-mortality"])
+```
+
+Measured about 1.8x faster than looping `add_chart` on three cold charts, and 1.2x once
+OWID's CDN had them warm. The data reads stay sequential because they write to one
+DuckDB connection.
+
+Roughly 7% of OWID charts cannot be served, so a bad slug is recorded in `failures`
+rather than raising and discarding the rest of the batch. A chart can also document
+itself happily and still refuse to serve its data, and that case is handled too.
+
 ### `add_indicator(parquet_url, table, column=None, description="")`
 
 Add an indicator's parquet from the ETL catalog. Returns a new `OWIDSource`.

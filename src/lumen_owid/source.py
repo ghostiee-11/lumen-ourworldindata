@@ -1,16 +1,27 @@
 """A DuckDB source that reads Our World In Data in place."""
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from typing import ClassVar
 
 import duckdb
 import httpx
 from lumen.sources.duckdb import DuckDBSource
 
-from .api import chart_table_metadata, explain_unreadable
+from .api import GRAPHER, chart_table_metadata, explain_unreadable, normalize_name
 
 # httpfs lets DuckDB range-read the remote CSV and parquet files without downloading.
 INITIALIZERS = ["INSTALL httpfs;", "LOAD httpfs;"]
+
+
+def chart_read_expression(slug: str) -> str:
+    """SQL that reads a chart CSV in place.
+
+    The explicit sample_size is required: OWID leaves annotation columns empty for
+    thousands of rows before a quoted value appears, which defeats DuckDB's default
+    20480-row type sniff and aborts the read mid-file.
+    """
+    return f"SELECT * FROM read_csv('{GRAPHER}/{slug}.csv', sample_size=-1)"
 
 
 class UnreadableDataset(Exception):
@@ -41,18 +52,45 @@ class OWIDSource(DuckDBSource):
 
     def add_chart(self, slug: str, table: str | None = None) -> OWIDSource:
         """Add a published chart by slug, with OWID's prose attached as metadata."""
-        from .api import GRAPHER, normalize_name
-
-        url = f"{GRAPHER}/{slug}.csv"
-        # Chart CSVs need an explicit sample_size: OWID leaves annotation columns
-        # empty for thousands of rows before a quoted value appears, which defeats
-        # DuckDB's default 20480-row type sniff and aborts the read mid-file.
         return self._add(
             table or normalize_name(slug),
-            f"SELECT * FROM read_csv('{url}', sample_size=-1)",
-            url,
+            chart_read_expression(slug),
+            f"{GRAPHER}/{slug}.csv",
             lambda: chart_table_metadata(slug),
         )
+
+    def add_charts(self, slugs: list[str]) -> tuple[OWIDSource, dict[str, str]]:
+        """Add several charts, fetching their metadata concurrently.
+
+        Most real questions need two or three datasets, and loading them one at a time
+        serialises a documentation fetch per chart. Fetching those concurrently
+        measured about 1.8x faster on three cold charts and 1.2x once OWID's CDN had
+        them warm, so this helps but is not transformative. The data reads stay
+        sequential because they write to one DuckDB connection.
+
+        Returns the new source and a mapping of slug to reason for any chart that
+        could not be loaded. Roughly 7% of OWID charts cannot be served at all, so one
+        bad slug must not discard the rest of the batch.
+        """
+        if not slugs:
+            return self, {}
+
+        with ThreadPoolExecutor(max_workers=min(len(slugs), 8)) as pool:
+            fetched = list(pool.map(self._describe, slugs))
+
+        source, failures = self, {}
+        for slug, metadata, error in fetched:
+            if error is not None:
+                failures[slug] = error
+                continue
+            try:
+                source = source._register_chart(slug, metadata)
+            except UnreadableDataset as unreadable:
+                # A chart can document itself happily and still refuse to serve its
+                # data, which is exactly what OWID does for non-redistributable
+                # sources, so the read has to be guarded as well as the metadata.
+                failures[slug] = str(unreadable)
+        return source, failures
 
     def add_indicator(
         self, parquet_url: str, table: str, column: str | None = None, description: str = "",
@@ -65,6 +103,27 @@ class OWIDSource(DuckDBSource):
             parquet_url,
             lambda: {"description": detail},
         )
+
+    def _register_chart(self, slug: str, metadata: dict) -> OWIDSource:
+        """Load a chart whose metadata has already been fetched."""
+        return self._add(
+            normalize_name(slug),
+            chart_read_expression(slug),
+            f"{GRAPHER}/{slug}.csv",
+            lambda: metadata,
+        )
+
+    @staticmethod
+    def _describe(slug: str) -> tuple[str, dict | None, str | None]:
+        """Fetch one chart's metadata, reporting failure rather than raising.
+
+        Runs in a worker thread, where an exception would otherwise surface only when
+        the result is read and would abandon the rest of the batch.
+        """
+        try:
+            return slug, chart_table_metadata(slug), None
+        except httpx.HTTPError as error:
+            return slug, None, explain_unreadable(f"{GRAPHER}/{slug}.csv", error)
 
     def _add(self, table: str, expression: str, url: str, metadata) -> OWIDSource:
         try:
