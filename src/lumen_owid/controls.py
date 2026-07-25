@@ -19,14 +19,15 @@ class OWIDSourceControls(CatalogSourceControls):
     delegates to OWID's own search APIs rather than the vector store.
     """
 
-    detail_columns = ["description", "kind", "url"]
+    detail_columns = ["description", "kind", "entities", "url"]
 
     # Leaves room for the download button column the base class appends; widths
     # summing to 100% push it off the right edge of the table.
     display_columns = {
-        "title": {"title": "Title", "width": "28%"},
-        "description": {"title": "Description", "width": "47%"},
-        "kind": {"title": "Kind", "width": "10%"},
+        "title": {"title": "Title", "width": "26%"},
+        "description": {"title": "Description", "width": "42%"},
+        "kind": {"title": "Kind", "width": "9%"},
+        "entities": {"title": "Entities", "width": "9%"},
     }
 
     filter_columns = {"title": {"type": "input", "func": "like", "placeholder": "Filter titles"}}
@@ -60,7 +61,12 @@ class OWIDSourceControls(CatalogSourceControls):
             return SourceResult.empty(f"{entry.title} cannot be loaded. {error}")
         self._source = source
         self._register_source_output(source)
-        return SourceResult.from_source(source, entry.table_name, message=f"Loaded {entry.title}.")
+        # Coverage decides whether a dataset can answer the question at all, and a
+        # join between a 23-entity table and a 285-entity one mostly produces nulls.
+        coverage = f" Covers {entry.entities} entities." if entry.entities else ""
+        return SourceResult.from_source(
+            source, entry.table_name, message=f"Loaded {entry.title}.{coverage}",
+        )
 
     async def _search_catalog(self, query: str) -> int | None:
         """Search OWID live rather than the local frame.

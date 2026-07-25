@@ -98,6 +98,11 @@ Search both surfaces, charts first, and return rows normalized onto the shared c
 described in [The catalog](catalog.md). Returns an empty frame if neither surface matches, and
 degrades to charts only if the indicator service is unreachable.
 
+### `entity_counts(hits)`
+
+How many entities each chart in a search result covers, or `None` where OWID lists none.
+Unknown coverage stays `None` rather than becoming a zero that reads as "empty dataset".
+
 ### `chart_metadata(slug)`
 
 The raw `<slug>.metadata.json`: a `chart` section with title, subtitle and citation, and a

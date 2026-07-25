@@ -59,6 +59,7 @@ surface-agnostic:
 | `table_name` | SQL identifier the table will get |
 | `slug` | Chart slug, or `None` for indicators |
 | `column` | Matched indicator column, or `None` for charts |
+| `entities` | How many entities the chart covers, or `None` if unknown |
 
 !!! note "Why indicators are named after the dataset"
     An indicator's parquet holds its *whole* source dataset, often 20+ columns. Naming the table
@@ -78,6 +79,21 @@ hit to the catalog frame, which keeps every other part of the base class working
 
 The practical consequence: the browse table shows 100 charts, but the agent can reach all of
 them.
+
+## Coverage, before you load
+
+Chart search results report how many entities a chart covers, and the spread is wide
+enough to matter: homelessness charts cover 23 to 38, GDP charts 43 to 285. Joining a
+23-entity table to a 285-entity one mostly produces nulls, so knowing this in advance
+lets a dataset be ruled out before it is fetched.
+
+The count is on every catalog row as `entities`, shown in the browser and repeated in
+the message when a dataset loads.
+
+Two caveats. These counts include aggregates such as continents, which is why the column
+is called entities rather than countries: a GDP chart lists 285 against 236 real
+countries. And the indicator API publishes no entity list at all, so indicator rows carry
+`None`, meaning unknown rather than zero.
 
 ## Countries and aggregates
 

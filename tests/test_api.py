@@ -172,3 +172,24 @@ def test_a_single_oversized_bullet_is_still_returned():
     """Dropping it entirely would lose the caveat, which is the point of the function."""
     single = "- " + "This measurement is not comparable across countries. " * 20
     assert key_points(single, budget=50).startswith("This measurement is not comparable")
+
+
+def test_chart_entries_carry_how_many_entities_they_cover(chart_payload):
+    """Coverage decides whether a dataset can answer a question before it is loaded."""
+    payload = {"results": [dict(chart_payload["results"][0], availableEntities=["a", "b", "c"])]}
+    with _mock_get(payload):
+        entry = charts_to_catalog(search_charts("x")).iloc[0]
+    assert entry.entities == 3
+
+
+def test_a_chart_without_an_entity_list_reports_unknown_not_zero(chart_payload):
+    with _mock_get(chart_payload):
+        entry = charts_to_catalog(search_charts("x")).iloc[0]
+    assert entry.entities is None
+
+
+def test_indicator_coverage_is_unknown(indicator_payload):
+    """The indicator API publishes no entity list, so claiming zero would be wrong."""
+    with _mock_get(indicator_payload):
+        entry = indicators_to_catalog(search_indicators("x")).iloc[0]
+    assert entry.entities is None

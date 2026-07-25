@@ -27,7 +27,9 @@ KEY_POINT_MINIMUM = 300
 TIMEOUT = 30
 
 # The columns every catalog entry carries, whichever surface it came from.
-CATALOG_COLUMNS = ["title", "description", "kind", "url", "table_name", "slug", "column"]
+CATALOG_COLUMNS = [
+    "title", "description", "kind", "url", "table_name", "slug", "column", "entities",
+]
 
 
 def normalize_name(name: str) -> str:
@@ -141,6 +143,19 @@ def explain_unreadable(url: str, cause: Exception | None = None) -> str:
     return "The dataset could not be read."
 
 
+def entity_counts(hits: pd.DataFrame) -> pd.Series | None:
+    """How many entities each chart covers, or None where OWID lists none.
+
+    Unknown coverage is not zero coverage, so a missing list stays None rather than
+    becoming a count that reads as "this dataset is empty".
+    """
+    if "availableEntities" not in hits:
+        return None
+    return hits["availableEntities"].map(
+        lambda names: len(names) if isinstance(names, list) else None
+    )
+
+
 def charts_to_catalog(hits: pd.DataFrame) -> pd.DataFrame:
     """Normalize chart search hits onto the shared catalog columns."""
     return pd.DataFrame({
@@ -151,6 +166,10 @@ def charts_to_catalog(hits: pd.DataFrame) -> pd.DataFrame:
         "table_name": hits["slug"].map(normalize_name),
         "slug": hits["slug"],
         "column": None,
+        # How many entities the chart covers, so a dataset can be ruled out before it
+        # is loaded. These include aggregates such as continents, hence "entities"
+        # rather than "countries": a GDP chart lists 285 against 236 real countries.
+        "entities": entity_counts(hits),
     })
 
 
@@ -170,6 +189,9 @@ def indicators_to_catalog(hits: pd.DataFrame) -> pd.DataFrame:
         ),
         "slug": None,
         "column": hits["metadata.column"],
+        # The indicator API publishes no entity list, so coverage is unknown here
+        # rather than zero.
+        "entities": None,
     })
 
 
