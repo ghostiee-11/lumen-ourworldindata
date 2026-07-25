@@ -45,8 +45,8 @@ source.execute("""
 """)
 ```
 
-118 countries match, and the correlation is about -0.14. Wealth barely predicts measured
-homelessness at all.
+Both tables live in one DuckDB workspace, so this is ordinary SQL. Note the column naming:
+chart CSVs use `Entity` and `Year`, indicator parquets use `country` and `year`.
 
 ## Reshape with the operations
 

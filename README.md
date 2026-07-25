@@ -55,9 +55,9 @@ Then ask it something:
 
 > how does the homelessness rate compare against GDP per capita?
 
-It searches Our World In Data, loads both datasets, joins them on country, and plots the result.
-The answer, for the record, is that they barely relate at all: across the 118 countries
-reporting both, Pearson r is about **-0.14**.
+It searches Our World In Data, loads both datasets into one DuckDB workspace, joins them on
+country, and plots the result. Nothing about that question is special-cased; any two OWID
+datasets join the same way.
 
 You can also drive it directly:
 
@@ -102,11 +102,12 @@ uv pip install -e ".[dev,geo]"
 pytest tests
 ```
 
-The offline suite is fully mocked and runs in seconds. The live suite hits the real endpoints
-and is the guard that fails when Our World In Data reshapes a table:
+The offline suite is fully mocked and runs in seconds. The network suite hits the real services
+and is the guard that fails when Our World In Data renames a column or retires an endpoint:
 
 ```bash
-pytest -m network
+pytest tests -m "not network"   # fast, deterministic, what CI runs
+pytest tests -m network         # live, run on demand
 ```
 
 ## ❤️ Contributing
