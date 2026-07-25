@@ -1,7 +1,12 @@
 import duckdb
 import pytest
 
-from lumen_owid.operations import IndexToBaseYear, LatestPerCountry, PerCapita
+from lumen_owid.operations import (
+    IndexToBaseYear,
+    LatestPerCountry,
+    OnlyCountries,
+    PerCapita,
+)
 
 
 @pytest.fixture
@@ -24,7 +29,7 @@ def _run(connection, transform):
 
 def test_latest_per_country_keeps_one_row_each(connection):
     result = _run(connection, LatestPerCountry(country="Entity", year="Year"))
-    assert len(result) == 3
+    assert len(result) == 6  # three countries plus three aggregates
     assert result.Entity.duplicated().sum() == 0
     assert set(result.Year) == {2020}
 
@@ -56,5 +61,32 @@ def test_per_capita_does_not_divide_by_zero(connection):
 
 def test_transforms_without_a_value_are_a_no_op(connection):
     """Params default to None so the transforms compose before being configured."""
-    assert _run(connection, PerCapita()).shape == (5, 5)
-    assert _run(connection, IndexToBaseYear()).shape == (5, 5)
+    assert _run(connection, PerCapita()).shape == (8, 5)
+    assert _run(connection, IndexToBaseYear()).shape == (8, 5)
+
+
+def test_only_countries_drops_every_kind_of_aggregate(connection):
+    """OWID_ regions, UN_ regions and codeless groupings all have to go.
+
+    Filtering on code length rather than a prefix list is what makes the UN_ case
+    work; it was missed by an earlier prefix-matching version.
+    """
+    result = _run(connection, OnlyCountries())
+    assert set(result.Entity) == {"France", "Japan", "Norway"}
+    for aggregate in ("Africa", "Least developed countries", "Europe (UN)"):
+        assert aggregate not in set(result.Entity)
+
+
+def test_only_countries_keeps_every_real_country(connection):
+    result = _run(connection, OnlyCountries())
+    assert set(result.Code) == {"FRA", "JPN", "NOR"}
+
+
+def test_only_countries_composes_with_latest(connection):
+    """The map path applies both, so they have to nest cleanly."""
+    sql = OnlyCountries().apply("SELECT * FROM owid")
+    result = connection.execute(
+        LatestPerCountry(country="Entity", year="Year", value="Rate").apply(sql)
+    ).df()
+    assert set(result.Entity) == {"France", "Japan"}
+    assert result.Year.tolist() == [2020, 2020]

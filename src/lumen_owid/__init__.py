@@ -18,7 +18,7 @@ from .api import (
     search_indicators,
 )
 from .controls import OWIDSourceControls
-from .operations import IndexToBaseYear, LatestPerCountry, PerCapita
+from .operations import IndexToBaseYear, LatestPerCountry, OnlyCountries, PerCapita
 from .source import OWIDSource, UnreadableDataset
 from .ui import build_ui
 from .views import OWIDChoropleth
@@ -35,6 +35,7 @@ __all__ = [
     "OWIDChoropleth",
     "OWIDSource",
     "OWIDSourceControls",
+    "OnlyCountries",
     "PerCapita",
     "UnreadableDataset",
     "build_ui",

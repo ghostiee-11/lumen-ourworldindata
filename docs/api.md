@@ -103,12 +103,56 @@ degrades to charts only if the indicator service is unreachable.
 The raw `<slug>.metadata.json`: a `chart` section with title, subtitle and citation, and a
 `columns` section with `titleShort`, `descriptionShort`, `unit`, `citationLong` and more.
 
+### `key_points(description_key, budget=6000)`
+
+Condense OWID's `descriptionKey` bullets to fit a character budget, keeping whole bullets.
+
+`descriptionKey` holds the caveats that decide whether a comparison is valid at all, the
+"data for the United Kingdom covers England only and counts households" kind. It also runs
+past 1,500 characters per column, so it is budgeted rather than forwarded whole.
+
+Whole bullets are kept and the rest dropped, since a truncated caveat reads as a complete
+statement. The first bullet is always kept even if it alone exceeds the budget.
+
+`chart_table_metadata` shares the budget across a table's columns, so a one-column chart
+keeps everything and a thirty-column one still fits. Measured over 59 charts the median
+carries 234 characters in total, so the common case is untouched.
+
 ## Operations
 
 SQL transforms, so they compose into Lumen pipelines and execute inside DuckDB. All take
 `country` and `year` column names, since the two OWID surfaces spell them differently.
 
 Each has an `apply(sql_in) -> sql_out` method.
+
+### OnlyCountries
+
+`transform_type: owid_only_countries`
+
+Drop OWID's aggregate rows, keeping actual countries.
+
+| Parameter | Default | Meaning |
+|---|---|---|
+| `code` | `"Code"` | Column holding an ISO alpha-3 code |
+
+OWID publishes continents, income groups and custom regions in the same table as
+countries. On the UN population dataset that is 26 aggregates among 262 entities, so a
+cross-country comparison silently gains rows for "Africa" and "High-income countries"
+unless they are removed.
+
+Aggregates are identified by code length: ISO alpha-3 is exactly three characters, so
+anything else is synthetic, whether it is OWID's own `OWID_AFR`, the UN's `UN_EUR`, or
+no code at all. Matching on length rather than a list of prefixes means a prefix OWID
+adds later needs no change here.
+
+```python
+OnlyCountries().apply(sql)          # 262 entities -> 236 countries
+```
+
+!!! warning "Chart tables only"
+    Indicator parquets carry no code column, so this cannot be applied to them. Check
+    with `lumen_owid.utils.code_column(df)` first. `MapAcrossCountries` does exactly
+    that, and skips the filter when no code is available.
 
 ### LatestPerCountry
 

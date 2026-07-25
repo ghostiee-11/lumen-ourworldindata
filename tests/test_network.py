@@ -6,7 +6,7 @@ These tests hit the real services and are expected to be run on demand.
 """
 import pytest
 
-from lumen_owid import OWIDSource, UnreadableDataset
+from lumen_owid import LatestPerCountry, OnlyCountries, OWIDSource, UnreadableDataset
 from lumen_owid.api import (
     chart_metadata,
     indicators_to_catalog,
@@ -77,3 +77,21 @@ def test_a_non_redistributable_chart_declines_with_owids_reason():
     """About 2% of charts are listed but blocked, so this path is not an edge case."""
     with pytest.raises(UnreadableDataset, match="redistribut"):
         OWIDSource().add_chart("suicide-death-rates")
+
+
+def test_only_countries_drops_owids_aggregates_from_a_real_table():
+    """The UN population table ships continents and income groups beside countries."""
+    source = OWIDSource().add_chart("population-with-un-projections")
+    sql = LatestPerCountry(country="Entity", year="Year", value="Population").apply(
+        "SELECT * FROM population_with_un_projections"
+    )
+    before = source.execute(sql)
+    after = source.execute(OnlyCountries().apply(sql))
+
+    assert len(after) < len(before)
+    # Every survivor is a real ISO alpha-3 country, including no UN_ regions, which
+    # an earlier prefix-matching version let through.
+    assert (after.Code.str.len() == 3).all()
+    for aggregate in ("Africa", "Europe (UN)", "Least developed countries"):
+        assert aggregate in set(before.Entity)
+        assert aggregate not in set(after.Entity)
