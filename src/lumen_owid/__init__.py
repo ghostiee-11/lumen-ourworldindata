@@ -21,7 +21,7 @@ from .controls import OWIDSourceControls
 from .operations import IndexToBaseYear, LatestPerCountry, OnlyCountries, PerCapita
 from .source import OWIDSource, UnreadableDataset
 from .ui import build_ui
-from .views import OWIDChoropleth
+from .views import OWIDChoropleth, OWIDTimeSeries
 
 __version__ = "0.1.0"
 
@@ -35,6 +35,7 @@ __all__ = [
     "OWIDChoropleth",
     "OWIDSource",
     "OWIDSourceControls",
+    "OWIDTimeSeries",
     "OnlyCountries",
     "PerCapita",
     "UnreadableDataset",

@@ -1,18 +1,25 @@
 """Views for the shapes Our World In Data is usually read in.
 
-The world map is OWID's signature output: almost every chart on the site offers a map
-tab. Lumen has no choropleth of its own, so this supplies one that speaks OWID's
-column conventions directly.
+OWID has two signature outputs: a world map and a line over time. Almost every chart on
+the site offers both as tabs. Lumen has neither in a form that understands OWID's column
+conventions, so this supplies both.
 """
 from __future__ import annotations
 
 from typing import ClassVar
 
+import hvplot.pandas  # noqa: F401  (registers the .hvplot accessor)
 import panel as pn
 import param
 from lumen.views.base import View
 
-from .utils import code_column, country_column, country_geometry, value_columns
+from .utils import (
+    code_column,
+    country_column,
+    country_geometry,
+    value_columns,
+    year_column,
+)
 
 
 class OWIDChoropleth(View):
@@ -76,6 +83,80 @@ class OWIDChoropleth(View):
                 f"*{matched} of {len(data)} rows placed on the map. "
                 f"{missing} did not match a country boundary, usually aggregates "
                 f"such as continents or income groups.*"
+            ),
+            sizing_mode="stretch_width",
+        )
+
+
+class OWIDTimeSeries(View):
+    """One measure over time, one line per country.
+
+    The counterpart to the map: a map answers "who is high and who is low", a line
+    answers "what changed". Both are tabs on almost every chart OWID publishes.
+
+    Series count is the real constraint. An OWID table carries every country it has
+    data for, often over two hundred, and a chart with two hundred lines communicates
+    nothing. Rather than draw them all, this keeps the best-covered countries up to
+    ``max_series`` and reports how many were left out, so a partial view never reads as
+    the whole picture.
+
+    Be aware of what "best covered" selects for. Ranking by number of observations
+    favours countries with long statistical records, which on a historical series means
+    wealthy ones: life expectancy defaults to eight Western European countries. That is
+    a reasonable default and a poor answer to some questions, so pass ``countries``
+    explicitly whenever the comparison matters.
+    """
+
+    countries = param.List(default=[], doc="""
+        Countries to plot. Empty means the best-covered ones, up to ``max_series``.""")
+
+    country = param.String(default=None, doc="""
+        Column holding the country name. Detected when not given.""")
+
+    max_series = param.Integer(default=8, doc="""
+        Maximum number of lines. Beyond roughly eight, colours stop being tellable
+        apart whatever palette is used. Named to avoid View.limit, which truncates
+        rows rather than series.""")
+
+    value = param.String(default=None, doc="""
+        Column to plot. Defaults to the first numeric column.""")
+
+    year = param.String(default=None, doc="""
+        Column holding the time period. Detected when not given.""")
+
+    view_type: ClassVar[str] = "owid_time_series"
+
+    def get_panel(self) -> pn.viewable.Viewable:
+        data = self.get_data()
+        value = self.value or next(iter(value_columns(data)), None)
+        country = self.country or country_column(data)
+        year = self.year or year_column(data)
+        if value is None or country is None or year is None:
+            return pn.pane.Markdown("Need a country, a year and a numeric column to plot.")
+
+        present = data[data[value].notna()]
+        if present.empty:
+            return pn.pane.Markdown(f"No values to plot for {value}.")
+
+        available = present[country].nunique()
+        best_covered = present[country].value_counts().head(self.max_series)
+        chosen = self.countries or best_covered.index.tolist()
+        subset = present[present[country].isin(chosen)].sort_values(year)
+        if subset.empty:
+            return pn.pane.Markdown(f"None of {', '.join(chosen)} appear in this table.")
+
+        plot = subset.hvplot.line(
+            x=year, y=value, by=country, responsive=True, height=400, legend="right",
+        )
+        panel = pn.pane.HoloViews(plot, sizing_mode="stretch_width")
+        hidden = available - subset[country].nunique()
+        if hidden <= 0:
+            return panel
+        return pn.Column(
+            panel,
+            pn.pane.Markdown(
+                f"*Showing the {subset[country].nunique()} best-covered of {available} "
+                f"countries. {hidden} are not plotted.*"
             ),
             sizing_mode="stretch_width",
         )
