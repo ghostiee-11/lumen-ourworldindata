@@ -16,8 +16,10 @@ import holoviews as hv
 import pandas as pd
 import panel as pn
 
-from lumen_owid import OWIDControls, search_charts, search_indicators
-from lumen_owid.controls import charts_to_catalog, indicators_to_catalog
+from lumen.ai.controls import OWIDSourceControls
+from lumen.ai.controls.ingest.owid import (
+    charts_to_catalog, indicators_to_catalog, search_charts, search_indicators,
+)
 
 hv.extension("bokeh")
 
@@ -52,7 +54,7 @@ ORDER BY h.rate DESC
 
 def load() -> pd.DataFrame:
     """Load both datasets into one DuckDB source and return the joined frame."""
-    controls = OWIDControls()
+    controls = OWIDSourceControls()
     controls.catalog_df = asyncio.run(controls._load_catalog())
     entries = pd.concat([
         indicators_to_catalog(search_indicators(HOMELESSNESS, 3).head(1)),
@@ -152,17 +154,16 @@ enough to swamp differences in how rich they are.
 
 ## How this was built
 
-Both datasets came from Our World In Data through
-[lumen-ourworldindata](https://github.com/holoviz-topics/lumen-ourworldindata), one
-from the chart catalog and one from the indicator catalog. Neither was downloaded:
-OWID serves CSV and parquet over HTTPS, and DuckDB reads both in place, so the join
-above is a single SQL statement across two remote files.
+Both datasets came from Our World In Data through [Lumen](https://lumen.holoviz.org),
+one from the chart catalog and one from the indicator catalog. Neither was
+downloaded: OWID serves CSV and parquet over HTTPS, and DuckDB reads both in place,
+so the join above is a single SQL statement across two remote files.
 
 ```
 from lumen.ai.ui import ExplorerUI
-from lumen_owid import OWIDControls
+from lumen.ai.controls import OWIDSourceControls
 
-ExplorerUI(source_controls=[OWIDControls]).servable()
+ExplorerUI(source_controls=[OWIDSourceControls]).servable()
 ```
 
 Data: OECD (2024) and the Maddison Project Database, via Our World In Data, CC BY 4.0.
