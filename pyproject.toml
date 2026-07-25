@@ -12,7 +12,7 @@ requires-python = ">=3.11"
 dependencies = ["lumen[ai]", "pandas", "httpx"]
 
 [project.optional-dependencies]
-dev = ["pytest", "pytest-asyncio", "ruff"]
+dev = ["pytest", "ruff"]
 
 [project.urls]
 Homepage = "https://github.com/holoviz-topics/lumen-ourworldindata"
@@ -24,5 +24,4 @@ packages = ["src/lumen_owid"]
 pythonpath = ["src"]
 testpaths = ["tests"]
 addopts = "-q"
-asyncio_mode = "auto"
 markers = ["network: hits the live Our World In Data APIs"]
