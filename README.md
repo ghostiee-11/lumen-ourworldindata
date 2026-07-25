@@ -6,6 +6,8 @@
 
 ## Overview
 
+https://github.com/user-attachments/assets/37765f77-00a2-4be2-814a-c1f335bfadb6
+
 lumen-ourworldindata is an extension that lets [Lumen](https://lumen.holoviz.org/) explore
 [Our World In Data](https://ourworldindata.org/), the public research database covering most
 global development questions. It aims to let anyone ask a question in plain language and get an
