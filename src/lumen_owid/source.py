@@ -58,9 +58,14 @@ class OWIDSource(DuckDBSource):
     def add_indicator(
         self, parquet_url: str, table: str, column: str | None = None, description: str = "",
     ) -> OWIDSource:
-        """Add an indicator's parquet. A bare URL is enough; DuckDB builds the read."""
+        """Add an indicator's parquet from the OWID ETL catalog."""
         detail = f"{description} Relevant column: {column}." if column else description
-        return self._add(table, parquet_url, parquet_url, lambda: {"description": detail})
+        return self._add(
+            table,
+            f"SELECT * FROM read_parquet('{parquet_url}')",
+            parquet_url,
+            lambda: {"description": detail},
+        )
 
     def _add(self, table: str, expression: str, url: str, metadata) -> OWIDSource:
         try:
@@ -71,7 +76,7 @@ class OWIDSource(DuckDBSource):
             # ("CSVReaderSerialize not implemented").
             self._connection.execute(f'CREATE OR REPLACE TABLE "{table}" AS ({expression})')
         except (duckdb.Error, httpx.HTTPStatusError) as error:
-            raise UnreadableDataset(explain_unreadable(url)) from error
+            raise UnreadableDataset(explain_unreadable(url, error)) from error
         # create_sql_expr_source unions the new table with those already loaded and
         # returns a source of this same type sharing the connection.
         return self.create_sql_expr_source(

@@ -76,12 +76,13 @@ def chart_table_metadata(slug: str) -> dict:
     }
 
 
-def explain_unreadable(url: str) -> str:
+def explain_unreadable(url: str, cause: Exception | None = None) -> str:
     """Ask OWID why a file could not be read, for the message shown to the user.
 
     DuckDB reports a blocked download as a bare "HTTP 0 Internal Server Error", so the
-    reason has to be recovered from OWID, which returns it as JSON in the body. Only
-    ever called once a read has already failed.
+    reason has to be recovered from OWID, which returns it as JSON in the body. When
+    OWID serves the file happily the fault is ours, so the underlying error is passed
+    through rather than replaced with something reassuring and useless.
     """
     try:
         httpx.get(url, timeout=TIMEOUT, follow_redirects=True).raise_for_status()
@@ -90,8 +91,10 @@ def explain_unreadable(url: str) -> str:
             return error.response.json()["error"]
         except (ValueError, KeyError):
             return f"Our World In Data returned {error.response.status_code}."
-    except httpx.HTTPError:
-        pass
+    except httpx.HTTPError as error:
+        return f"Could not reach Our World In Data: {error}"
+    if cause is not None:
+        return f"Our World In Data served the file but it could not be read: {cause}"
     return "The dataset could not be read."
 
 

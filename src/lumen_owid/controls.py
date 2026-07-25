@@ -22,10 +22,12 @@ class OWIDSourceControls(CatalogSourceControls):
 
     detail_columns = ["description", "kind", "url"]
 
+    # Leaves room for the download button column the base class appends; widths
+    # summing to 100% push it off the right edge of the table.
     display_columns = {
-        "title": {"title": "Title", "width": "30%"},
-        "description": {"title": "Description", "width": "55%"},
-        "kind": {"title": "Kind", "width": "15%"},
+        "title": {"title": "Title", "width": "28%"},
+        "description": {"title": "Description", "width": "47%"},
+        "kind": {"title": "Kind", "width": "10%"},
     }
 
     filter_columns = {"title": {"type": "input", "func": "like", "placeholder": "Filter titles"}}

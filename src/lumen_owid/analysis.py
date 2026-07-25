@@ -20,9 +20,20 @@ from .views import OWIDChoropleth
 
 
 class OWIDAnalysis(Analysis):
-    """Shared column detection for OWID's long-format country/year tables."""
+    """Shared column detection for OWID's long-format country/year tables.
+
+    ``Analysis.columns`` is left empty and ``applies`` is overridden instead. Chart
+    CSVs spell the key columns Entity/Year while indicator parquets spell them
+    country/year, and although the base class supports a tuple to mean "one of
+    these", Lumen renders the analysis list with ``", ".join(columns)``, which
+    raises on a tuple before the app can start.
+    """
 
     __abstract = True
+
+    @classmethod
+    async def applies(cls, pipeline) -> bool:
+        return country_column(pipeline.data) is not None
 
     def _columns(self, pipeline: Pipeline) -> tuple[str, str, list[str]]:
         data = pipeline.data
@@ -39,7 +50,6 @@ class MapAcrossCountries(OWIDAnalysis):
     value = param.String(default=None, doc="""
         Measure to map. Defaults to the first numeric column.""")
 
-    columns = param.List(default=[("country", "Entity", "entity")], constant=True)
 
     def __call__(self, pipeline: Pipeline, context) -> pn.viewable.Viewable:
         country, year, values = self._columns(pipeline)
@@ -71,7 +81,6 @@ class CompareCountries(OWIDAnalysis):
     value = param.String(default=None, doc="""
         Measure to plot. Defaults to the first numeric column.""")
 
-    columns = param.List(default=[("country", "Entity", "entity"), ("year", "Year")], constant=True)
 
     def __call__(self, pipeline: Pipeline, context) -> pn.viewable.Viewable:
         country, year, values = self._columns(pipeline)
@@ -117,7 +126,6 @@ class CorrelateIndicators(OWIDAnalysis):
 
     y = param.String(default=None, doc="Measure on the vertical axis.")
 
-    columns = param.List(default=[("country", "Entity", "entity")], constant=True)
 
     @classmethod
     async def applies(cls, pipeline) -> bool:
