@@ -23,10 +23,16 @@ def joined():
 
 
 def test_both_datasets_still_join_on_country(joined):
-    assert len(joined) >= 20
-    assert set(joined.columns) == {"country", "year", "rate", "gdp"}
+    assert len(joined) >= 100
+    assert {"country", "year", "rate", "gdp", "methodology"} <= set(joined.columns)
     assert joined.rate.notna().all()
     assert joined.gdp.notna().all()
+
+
+def test_the_methodology_mix_is_still_reported(joined):
+    """The caveat in the post is computed from this column, not asserted by hand."""
+    assert joined.methodology.notna().any()
+    assert joined.methodology.nunique() > 1
 
 
 def test_wealth_still_fails_to_explain_homelessness(joined):
