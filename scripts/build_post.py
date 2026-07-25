@@ -8,18 +8,14 @@ computed from the joined frame, so the text cannot drift from the data.
 """
 from __future__ import annotations
 
-import asyncio
-
 from pathlib import Path
 
 import holoviews as hv
 import pandas as pd
 import panel as pn
 
-from lumen.ai.controls import OWIDSourceControls
-from lumen.ai.controls.ingest.owid import (
-    charts_to_catalog, indicators_to_catalog, search_charts, search_indicators,
-)
+from lumen_owid import OWIDSource
+from lumen_owid.api import indicators_to_catalog, search_indicators
 
 hv.extension("bokeh")
 
@@ -30,22 +26,22 @@ BLUE = "#2a78d6"
 INK = "#52514e"
 
 # The homelessness series is only published as an indicator, and the Maddison GDP
-# series is the chart the question was originally asked about, so the post uses
-# one dataset from each OWID surface.
-HOMELESSNESS = "homelessness point in time total"
-GDP = "GDP per capita maddison project database"
+# series is the chart the question was originally asked about, so the post draws one
+# dataset from each of OWID's two surfaces.
+HOMELESSNESS = "homelessness per 10,000 people"
+GDP_CHART = "gdp-per-capita-maddison-project-database"
 
 JOIN = """
 WITH h AS (
-    SELECT country, year, point_in_time_total AS rate,
+    SELECT country, year, people_homeless_per_10k AS rate, methodology,
            row_number() OVER (PARTITION BY country ORDER BY year DESC) AS rn
-    FROM affordable_housing_database WHERE point_in_time_total IS NOT NULL
+    FROM better_data_homelessness WHERE people_homeless_per_10k IS NOT NULL
 ), g AS (
     SELECT "Entity" AS country, "GDP per capita" AS gdp,
            row_number() OVER (PARTITION BY "Entity" ORDER BY "Year" DESC) AS rn
     FROM gdp_per_capita_maddison_project_database WHERE "GDP per capita" IS NOT NULL
 )
-SELECT h.country, h.year, h.rate, g.gdp
+SELECT h.country, h.year, h.rate, h.methodology, g.gdp
 FROM h JOIN g ON h.country = g.country
 WHERE h.rn = 1 AND g.rn = 1
 ORDER BY h.rate DESC
@@ -54,15 +50,13 @@ ORDER BY h.rate DESC
 
 def load() -> pd.DataFrame:
     """Load both datasets into one DuckDB source and return the joined frame."""
-    controls = OWIDSourceControls()
-    controls.catalog_df = asyncio.run(controls._load_catalog())
-    entries = pd.concat([
-        indicators_to_catalog(search_indicators(HOMELESSNESS, 3).head(1)),
-        charts_to_catalog(search_charts(GDP, 5).head(1)),
-    ], ignore_index=True)
-    for _, entry in entries.iterrows():
-        asyncio.run(controls._fetch_entry(entry))
-    return controls._source.execute(JOIN)
+    entry = indicators_to_catalog(search_indicators(HOMELESSNESS, 3).head(1)).iloc[0]
+    source = (
+        OWIDSource()
+        .add_indicator(entry.url, entry.table_name, entry.column, entry.description or "")
+        .add_chart(GDP_CHART)
+    )
+    return source.execute(JOIN)
 
 
 def scatter(df: pd.DataFrame) -> hv.Overlay:
@@ -70,24 +64,29 @@ def scatter(df: pd.DataFrame) -> hv.Overlay:
     points = hv.Points(df, kdims=["gdp", "rate"]).opts(
         color=BLUE, size=9, alpha=0.85, line_color="white", line_width=1.5, padding=0.1,
     )
-    named = df[df.country.isin(["Norway", "Ireland", "Japan", "United Kingdom", "United States"])]
+    named = df[df.country.isin(list(df.nlargest(3, "rate").country) + list(df.nlargest(2, "gdp").country))]
     labels = hv.Labels(named, kdims=["gdp", "rate"], vdims=["country"]).opts(
         text_color=INK, text_font_size="9pt", yoffset=18,
     )
     return (points * labels).opts(
         width=760, height=420, show_grid=True, toolbar="above",
-        xlabel="GDP per capita (int-$)", ylabel="Homeless per 100,000",
+        xlabel="GDP per capita (int-$)", ylabel="Homeless per 10,000",
         title="Wealth does not predict measured homelessness",
     )
 
 
 def ranked_bars(df: pd.DataFrame) -> hv.Bars:
-    """The same rates as a ranked bar, where the spread is easier to read."""
-    ordered = df.sort_values("rate", ascending=False)
+    """The highest rates as a ranked bar, where the spread is easier to read.
+
+    Capped at the top 20: all 118 countries would give each bar about six pixels and
+    an unreadable axis. The cap is stated in the title so nothing looks like the
+    whole picture when it is not.
+    """
+    ordered = df.sort_values("rate", ascending=False).head(20)
     return hv.Bars(ordered, kdims=["country"], vdims=["rate"]).opts(
         color=BLUE, width=760, height=380, xrotation=60, show_grid=True,
-        xlabel="", ylabel="Homeless per 100,000",
-        title="The same countries, ranked by homelessness rate",
+        xlabel="", ylabel="Homeless per 10,000",
+        title="The 20 highest reported rates",
     )
 
 
@@ -96,7 +95,7 @@ def prose(df: pd.DataFrame) -> tuple[str, str, str]:
     correlation = df.rate.corr(df.gdp)
     top, bottom = df.iloc[0], df.iloc[-1]
     richest = df.loc[df.gdp.idxmax()]
-    ireland = df[df.country == "Ireland"].iloc[0]
+    poorest = df.loc[df.gdp.idxmin()]
 
     intro = f"""
 # Does homelessness track how rich a country is?
@@ -105,10 +104,10 @@ It is an easy assumption to make. Richer countries have more to spend on housing
 shelters and welfare, so you would expect their streets to be emptier.
 
 Our World In Data publishes both halves of that question: a homelessness rate per
-100,000 people, collected by counting people sleeping rough or in shelters on a
-single night, and GDP per capita from the Maddison Project. Taking the most recent
-observation for each of the {len(df)} countries that report both, the correlation
-between them is **{correlation:.3f}**.
+10,000 people, compiled by the Institute of Global Homelessness, and GDP per capita
+from the Maddison Project. Taking the most recent observation for each of the
+{len(df)} countries that report both, the correlation between them is
+**{correlation:.3f}**.
 
 That is nothing. Wealth explains essentially none of the variation.
 """
@@ -116,35 +115,37 @@ That is nothing. Wealth explains essentially none of the variation.
     middle = f"""
 ## The spread is enormous, and it is not ordered by money
 
-{top.country} reports {top.rate:.0f} people per 100,000 and {bottom.country} reports
-{bottom.rate:.1f}, a gap of more than {top.rate / bottom.rate:.0f} times. Those two
-countries have almost the same GDP per capita, about
-${top.gdp:,.0f} and ${bottom.gdp:,.0f}.
-
-Run it the other way and the pattern is just as absent. {richest.country} is the
-richest country here at ${richest.gdp:,.0f} per person and reports
-{richest.rate:.0f} per 100,000. {ireland.country}, at ${ireland.gdp:,.0f}, reports
-{ireland.rate:.0f}, nearly {ireland.rate / richest.rate:.0f} times as many.
+{top.country} reports {top.rate:.1f} people per 10,000 and {bottom.country} reports
+{bottom.rate:.2f}. Run the comparison the other way and the pattern is just as absent.
+{richest.country} is the richest country here at ${richest.gdp:,.0f} per person and
+reports {richest.rate:.1f} per 10,000, while {poorest.country}, on
+${poorest.gdp:,.0f}, reports {poorest.rate:.1f}.
 
 Whatever drives these numbers, it is policy, housing supply and how each country
 counts, not national income.
 """
 
-    caveat = """
+    methods = df.methodology.fillna("Undefined").value_counts()
+    method_lines = "\n".join(
+        f"- {method}: {count} countries" for method, count in methods.items()
+    )
+
+    caveat = f"""
 ## Read these numbers carefully
 
-This is the part that matters most, and OWID says so in its own metadata.
+This is the part that matters most, and Our World In Data says so in its own metadata:
+these counts are **not directly comparable across countries**, because each country
+uses its own definition of homelessness and its own collection method.
 
-These counts are **not directly comparable across countries**. Each country uses its
-own definition of homelessness and its own collection method, and OWID harmonizes
-them only as far as is possible. Some countries include people in tents and
-unconventional dwellings; others do not. France excludes asylum seekers. The United
-Kingdom figure covers England only and counts *households*, not people, which is a
-large part of why it sits at the top of this chart.
+That is not a vague warning. The dataset records how each country arrived at its
+number, and among the {len(df)} countries here the methods are:
 
-A single-night count also misses anyone who was housed that night and homeless a week
-later, so every figure here understates the number of people who experience
-homelessness over a year.
+{method_lines}
+
+A street count and a register of households assessed as homeless are not measuring the
+same thing, and neither is an estimate. Countries also differ on whether the definition
+includes people in emergency accommodation or in insecure housing at all, which the
+dataset tracks in separate columns.
 
 So the honest claim is narrow: **national wealth does not predict measured
 homelessness.** That is not the same as saying money cannot reduce homelessness. It
@@ -161,12 +162,13 @@ so the join above is a single SQL statement across two remote files.
 
 ```
 from lumen.ai.ui import ExplorerUI
-from lumen.ai.controls import OWIDSourceControls
+from lumen_owid import OWIDSourceControls
 
 ExplorerUI(source_controls=[OWIDSourceControls]).servable()
 ```
 
-Data: OECD (2024) and the Maddison Project Database, via Our World In Data, CC BY 4.0.
+Data: Institute of Global Homelessness (2024) and the Maddison Project Database,
+via Our World In Data, CC BY 4.0.
 """
     return intro, middle, caveat
 
