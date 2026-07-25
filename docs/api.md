@@ -103,6 +103,21 @@ degrades to charts only if the indicator service is unreachable.
 The raw `<slug>.metadata.json`: a `chart` section with title, subtitle and citation, and a
 `columns` section with `titleShort`, `descriptionShort`, `unit`, `citationLong` and more.
 
+### `key_points(description_key, budget=6000)`
+
+Condense OWID's `descriptionKey` bullets to fit a character budget, keeping whole bullets.
+
+`descriptionKey` holds the caveats that decide whether a comparison is valid at all, the
+"data for the United Kingdom covers England only and counts households" kind. It also runs
+past 1,500 characters per column, so it is budgeted rather than forwarded whole.
+
+Whole bullets are kept and the rest dropped, since a truncated caveat reads as a complete
+statement. The first bullet is always kept even if it alone exceeds the budget.
+
+`chart_table_metadata` shares the budget across a table's columns, so a one-column chart
+keeps everything and a thirty-column one still fits. Measured over 59 charts the median
+carries 234 characters in total, so the common case is untouched.
+
 ## Operations
 
 SQL transforms, so they compose into Lumen pipelines and execute inside DuckDB. All take

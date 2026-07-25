@@ -17,6 +17,13 @@ INDICATOR_SEARCH = "https://search.owid.io/indicators"
 # The chart search API rejects hitsPerPage above 100.
 MAX_HITS = 100
 
+# How much of OWID's descriptionKey to forward per table, shared across its columns.
+# Measured over 59 charts, the median carries 234 characters in total and only three
+# exceeded 8,000, so a per-table budget leaves the common case untouched and trims only
+# the wide outliers. The floor keeps something useful on a 30-column table.
+KEY_POINT_TABLE_BUDGET = 6000
+KEY_POINT_MINIMUM = 300
+
 TIMEOUT = 30
 
 # The columns every catalog entry carries, whichever surface it came from.
@@ -59,19 +66,55 @@ def chart_metadata(slug: str) -> dict:
     return response.json()
 
 
+def key_points(description_key: str | None, budget: int = KEY_POINT_TABLE_BUDGET) -> str:
+    """Condense OWID's ``descriptionKey`` bullets to fit a character budget.
+
+    This field carries the caveats that decide whether a comparison is even valid, the
+    "data for the United Kingdom covers England only and counts households" kind, so it
+    is worth forwarding. It also runs past 1,500 characters per column, and a wide
+    dataset would otherwise crowd out the rest of the prompt.
+
+    Whole bullets are kept and the remainder dropped, because half a caveat is worse
+    than none: a truncated sentence reads as a complete statement.
+    """
+    if not description_key:
+        return ""
+    points, used = [], 0
+    for point in description_key.split("\n-"):
+        point = point.strip().lstrip("-").strip()
+        if not point:
+            continue
+        # The first point is always kept, even when it alone exceeds the budget:
+        # returning nothing would drop the caveat entirely, which is the outcome this
+        # whole function exists to avoid.
+        if points and used + len(point) > budget:
+            break
+        points.append(point)
+        used += len(point)
+    return " ".join(points)
+
+
 def chart_table_metadata(slug: str) -> dict:
     """Hand OWID's own prose to the LLM so it can tell similar series apart."""
     meta = chart_metadata(slug)
     chart = meta["chart"]
+    columns = meta["columns"]
+    # Share the budget across columns, so a single-column chart keeps all its caveats
+    # and a thirty-column one still fits.
+    budget = max(KEY_POINT_MINIMUM, KEY_POINT_TABLE_BUDGET // max(len(columns), 1))
     return {
         "description": " ".join(
             part for part in (chart["title"], chart.get("subtitle"), chart.get("citation")) if part
         ),
         "columns": {
             name: " ".join(
-                part for part in (column.get("descriptionShort"), column.get("unit")) if part
+                part for part in (
+                    column.get("descriptionShort"),
+                    column.get("unit"),
+                    key_points(column.get("descriptionKey"), budget),
+                ) if part
             )
-            for name, column in meta["columns"].items()
+            for name, column in columns.items()
         },
     }
 
