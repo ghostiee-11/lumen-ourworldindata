@@ -146,6 +146,10 @@ Divide a total by population. Adds a `<value>_per_capita` column.
 Divides through `NULLIF(..., 0)`, so a zero population yields null rather than an infinity that
 would silently blank out a chart axis.
 
+!!! note
+    Pass a `value` different from `population`. Dividing a column by itself is meaningless and
+    trips a binder bug in DuckDB 1.5.0.
+
 ### IndexToBaseYear
 
 `transform_type: owid_index_to_base_year`

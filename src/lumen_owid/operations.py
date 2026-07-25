@@ -52,10 +52,12 @@ class LatestPerCountry(OWIDTransform):
         source = sql_in
         if self.value:
             source = f'SELECT * FROM ({sql_in}) WHERE "{self.value}" IS NOT NULL'
+        # QUALIFY filters on a window function without projecting a helper column,
+        # so nothing has to be excluded afterwards. The SELECT * EXCLUDE form this
+        # replaces tripped a DuckDB binder error once the transforms were composed.
         return (
-            f'SELECT * EXCLUDE (_owid_rank) FROM (SELECT *, row_number() OVER '
-            f'(PARTITION BY "{self.country}" ORDER BY "{self.year}" DESC) AS _owid_rank '
-            f'FROM ({source})) WHERE _owid_rank = 1'
+            f'SELECT * FROM ({source}) QUALIFY row_number() OVER '
+            f'(PARTITION BY "{self.country}" ORDER BY "{self.year}" DESC) = 1'
         )
 
 
