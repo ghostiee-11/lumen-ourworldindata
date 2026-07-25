@@ -1,11 +1,60 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
-name = "lumen-ourworldindata-post"
-version = "0.0.1"
-description = "A data blog post built with Lumen and Our World In Data"
+name = "lumen-ourworldindata"
+version = "0.1.0"
+description = "Chat with Our World In Data"
+readme = "README.md"
+license = "BSD-3-Clause"
 requires-python = ">=3.11"
-dependencies = ["lumen[ai]", "holoviews", "panel", "pandas"]
+authors = [{ name = "Aman Kumar" }]
+keywords = ["lumen", "holoviz", "ourworldindata", "owid", "duckdb", "panel"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+    "lumen[ai]",
+    "duckdb",
+    "httpx",
+    "hvplot",
+    "pandas",
+    "panel",
+]
+
+[project.optional-dependencies]
+# The choropleth needs country polygons; everything else works without them.
+geo = ["cartopy", "geopandas", "geoviews"]
+dev = ["pytest", "pytest-asyncio", "ruff"]
+
+[project.scripts]
+lumen-owid = "lumen_owid.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/holoviz-topics/lumen-ourworldindata"
+Issues = "https://github.com/holoviz-topics/lumen-ourworldindata/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/lumen_owid"]
 
 [tool.pytest.ini_options]
+pythonpath = ["src"]
 testpaths = ["tests"]
 addopts = "-q"
+asyncio_mode = "auto"
 markers = ["network: hits the live Our World In Data APIs"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "W"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["lumen_owid"]
