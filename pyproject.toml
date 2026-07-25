@@ -1,0 +1,28 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "lumen-ourworldindata"
+version = "0.0.1"
+description = "Chat with Our World In Data"
+readme = "README.md"
+license = "BSD-3-Clause"
+requires-python = ">=3.11"
+dependencies = ["lumen[ai]", "pandas", "httpx"]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-asyncio", "ruff"]
+
+[project.urls]
+Homepage = "https://github.com/holoviz-topics/lumen-ourworldindata"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/lumen_owid"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-q"
+asyncio_mode = "auto"
+markers = ["network: hits the live Our World In Data APIs"]
