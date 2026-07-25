@@ -64,7 +64,8 @@ def scatter(df: pd.DataFrame) -> hv.Overlay:
     points = hv.Points(df, kdims=["gdp", "rate"]).opts(
         color=BLUE, size=9, alpha=0.85, line_color="white", line_width=1.5, padding=0.1,
     )
-    named = df[df.country.isin(list(df.nlargest(3, "rate").country) + list(df.nlargest(2, "gdp").country))]
+    notable = list(df.nlargest(3, "rate").country) + list(df.nlargest(2, "gdp").country)
+    named = df[df.country.isin(notable)]
     labels = hv.Labels(named, kdims=["gdp", "rate"], vdims=["country"]).opts(
         text_color=INK, text_font_size="9pt", yoffset=18,
     )

@@ -137,7 +137,8 @@ def search_catalog(query: str, limit: int = 5) -> pd.DataFrame:
     indicator service is a separate deployment under active development, so its
     failure degrades to charts-only rather than taking the search down.
     """
-    for search, to_catalog in ((search_charts, charts_to_catalog), (search_indicators, indicators_to_catalog)):
+    surfaces = ((search_charts, charts_to_catalog), (search_indicators, indicators_to_catalog))
+    for search, to_catalog in surfaces:
         try:
             hits = search(query, limit)
         except httpx.HTTPError:

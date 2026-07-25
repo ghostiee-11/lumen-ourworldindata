@@ -6,7 +6,6 @@ dataset, so this suite hits the real endpoints and is the reason the post can be
 rebuilt with confidence.
 """
 import sys
-
 from pathlib import Path
 
 import pytest

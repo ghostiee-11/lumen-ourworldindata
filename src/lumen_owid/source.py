@@ -5,7 +5,6 @@ from typing import ClassVar
 
 import duckdb
 import httpx
-
 from lumen.sources.duckdb import DuckDBSource
 
 from .api import chart_table_metadata, explain_unreadable

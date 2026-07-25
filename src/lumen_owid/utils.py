@@ -13,7 +13,9 @@ YEAR_COLUMNS = ("year", "Year")
 CODE_COLUMNS = ("Code", "code", "iso_code")
 
 
-def pick_column(df: pd.DataFrame, candidates: tuple[str, ...], default: str | None = None) -> str | None:
+def pick_column(
+    df: pd.DataFrame, candidates: tuple[str, ...], default: str | None = None,
+) -> str | None:
     """Return the first candidate present in the frame."""
     return next((column for column in candidates if column in df.columns), default)
 

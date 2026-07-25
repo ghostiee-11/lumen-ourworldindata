@@ -4,7 +4,6 @@ from __future__ import annotations
 import asyncio
 
 import pandas as pd
-
 from lumen.ai.controls import CatalogSourceControls
 from lumen.ai.controls.ingest import SourceResult
 

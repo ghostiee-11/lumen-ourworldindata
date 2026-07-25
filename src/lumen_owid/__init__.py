@@ -6,10 +6,16 @@ data: it supplies discovery, the metadata that lets a model pick the right serie
 and the handful of reshapes and views that OWID's country/year tables always need.
 """
 from .analysis import (
-    ANALYSES, CompareCountries, CorrelateIndicators, MapAcrossCountries,
+    ANALYSES,
+    CompareCountries,
+    CorrelateIndicators,
+    MapAcrossCountries,
 )
 from .api import (
-    chart_metadata, search_catalog, search_charts, search_indicators,
+    chart_metadata,
+    search_catalog,
+    search_charts,
+    search_indicators,
 )
 from .controls import OWIDSourceControls
 from .operations import IndexToBaseYear, LatestPerCountry, PerCapita

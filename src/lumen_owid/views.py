@@ -10,7 +10,6 @@ from typing import ClassVar
 
 import panel as pn
 import param
-
 from lumen.views.base import View
 
 from .utils import code_column, country_column, country_geometry, value_columns

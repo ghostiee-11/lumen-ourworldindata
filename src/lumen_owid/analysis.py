@@ -10,7 +10,6 @@ from __future__ import annotations
 import hvplot.pandas  # noqa: F401  (registers the .hvplot accessor)
 import panel as pn
 import param
-
 from lumen.ai.analysis import Analysis
 from lumen.pipeline import Pipeline
 

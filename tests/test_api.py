@@ -3,8 +3,12 @@ from unittest.mock import Mock, patch
 import pandas as pd
 
 from lumen_owid.api import (
-    charts_to_catalog, explain_unreadable, indicators_to_catalog, search_catalog,
-    search_charts, search_indicators,
+    charts_to_catalog,
+    explain_unreadable,
+    indicators_to_catalog,
+    search_catalog,
+    search_charts,
+    search_indicators,
 )
 
 
@@ -51,7 +55,8 @@ def test_both_surfaces_share_the_catalog_columns(chart_payload, indicator_payloa
 
 
 def test_search_catalog_prefers_charts(chart_payload):
-    with patch("lumen_owid.api.search_charts", return_value=pd.DataFrame(chart_payload["results"])), \
+    charts = pd.DataFrame(chart_payload["results"])
+    with patch("lumen_owid.api.search_charts", return_value=charts), \
          patch("lumen_owid.api.search_indicators") as indicators:
         assert search_catalog("x").iloc[0].kind == "chart"
     indicators.assert_not_called()

@@ -11,7 +11,6 @@ from __future__ import annotations
 from typing import ClassVar
 
 import param
-
 from lumen.transforms.sql import SQLTransform
 
 
