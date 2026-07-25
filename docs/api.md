@@ -119,6 +119,22 @@ degrades to charts only if the indicator service is unreachable.
 
 How many entities each chart in a search result covers, or `None` where OWID lists none.
 Unknown coverage stays `None` rather than becoming a zero that reads as "empty dataset".
+### `align_column_docs(docs, columns)`
+
+Re-key column documentation onto the names a loaded table actually uses.
+
+OWID keys its metadata by indicator title, but a chart CSV's headers are the chart's
+display names, which it is free to override. "Period life expectancy at birth" arrives
+as "Life expectancy"; the homelessness chart renames all three of its indicators. Only
+about 58% of charts agree, so documentation keyed straight from the metadata describes
+columns that do not exist.
+
+Exact matches are taken first, then the remainder is aligned by position, which held for
+32 of 33 sampled charts once identifier and `(Annotations)` columns are set aside. When
+the counts disagree the remainder is dropped, since documentation attached to the wrong
+column is worse than none.
+
+Applied automatically by `OWIDSource` after a chart loads.
 
 ### `chart_metadata(slug)`
 

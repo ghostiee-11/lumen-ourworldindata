@@ -3,6 +3,7 @@ from unittest.mock import Mock, patch
 import pandas as pd
 
 from lumen_owid.api import (
+    align_column_docs,
     chart_table_metadata,
     charts_to_catalog,
     explain_unreadable,
@@ -193,3 +194,59 @@ def test_indicator_coverage_is_unknown(indicator_payload):
     with _mock_get(indicator_payload):
         entry = indicators_to_catalog(search_indicators("x")).iloc[0]
     assert entry.entities is None
+def test_column_docs_prefer_an_exact_name_match():
+    docs = {"Life expectancy": "how long people live"}
+    aligned = align_column_docs(docs, ["Entity", "Year", "Life expectancy"])
+    assert aligned == {"Life expectancy": "how long people live"}
+
+
+def test_column_docs_fall_back_to_position_when_the_chart_renames():
+    """The homelessness chart renames all three of its indicators, so names never match.
+
+    Its CSV headers describe where people slept; the metadata keys are ETHOS
+    categories. Position is what connects them.
+    """
+    docs = {
+        "Rate of people experiencing homelessness (ETHOS 1)": "streets",
+        "Rate of people experiencing homelessness (ETHOS 2 and 3)": "shelters",
+        "Rate of people experiencing homelessness (ETHOS 1, 2 and 3)": "either",
+    }
+    columns = [
+        "Entity", "Code", "Year",
+        "Living in the streets or public spaces",
+        "Staying in temporary accommodation or shelters",
+        "Either",
+    ]
+    assert align_column_docs(docs, columns) == {
+        "Living in the streets or public spaces": "streets",
+        "Staying in temporary accommodation or shelters": "shelters",
+        "Either": "either",
+    }
+
+
+def test_identifier_columns_never_consume_a_position():
+    """Entity, Code and Year are not indicators; counting them would misalign everything."""
+    aligned = align_column_docs({"Some indicator": "text"}, ["Entity", "Code", "Year", "Rate"])
+    assert aligned == {"Rate": "text"}
+
+
+def test_annotation_columns_are_skipped():
+    """The Maddison GDP chart carries a trailing (Annotations) column."""
+    docs = {"GDP per capita": "output per person"}
+    columns = ["Entity", "Code", "Year", "GDP per capita", "GDP per capita (Annotations)"]
+    assert align_column_docs(docs, columns) == {"GDP per capita": "output per person"}
+
+
+def test_documentation_is_dropped_rather_than_guessed():
+    """maternal-mortality documents three indicators but plots two.
+
+    Attaching the wrong caveat to a column is worse than attaching none.
+    """
+    docs = {"A": "a", "B": "b", "C": "c"}
+    assert align_column_docs(docs, ["Entity", "Year", "First", "Second"]) == {}
+
+
+def test_a_partial_name_match_still_aligns_the_rest():
+    docs = {"Rate": "the rate", "Renamed indicator": "the other one"}
+    aligned = align_column_docs(docs, ["Entity", "Rate", "Something else"])
+    assert aligned == {"Rate": "the rate", "Something else": "the other one"}

@@ -95,3 +95,17 @@ def test_only_countries_drops_owids_aggregates_from_a_real_table():
     for aggregate in ("Africa", "Europe (UN)", "Least developed countries"):
         assert aggregate in set(before.Entity)
         assert aggregate not in set(after.Entity)
+
+
+def test_column_documentation_lands_on_columns_that_exist():
+    """Shipped broken once: OWID keys metadata by indicator title, not CSV header.
+
+    Documentation attached to a name the table does not have is invisible to the
+    model, which quietly wasted the caveats this package exists to forward.
+    """
+    for slug in ("life-expectancy", "homelessness-rate-point-in-time-count", "child-mortality"):
+        source = OWIDSource().add_chart(slug)
+        table = source.get_tables()[0]
+        documented = set(source.metadata[table]["columns"])
+        assert documented, f"{slug} documented no columns at all"
+        assert documented <= set(source.get(table).columns), f"{slug} documented a phantom column"
