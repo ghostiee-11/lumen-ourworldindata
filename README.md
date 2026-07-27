@@ -114,11 +114,13 @@ pytest tests -m network         # live, run on demand
 
 ## Documentation
 
-- [Getting started](docs/getting-started.md)
-- [The catalog](docs/catalog.md) — how discovery works and what is reachable
-- [Examples](docs/examples.md)
-- [API reference](docs/api.md)
-- [Limitations](docs/limitations.md) — read before publishing anything based on this
+Full docs: **<https://ghostiee-11.github.io/lumen-ourworldindata/>**
+
+- [Getting started](https://ghostiee-11.github.io/lumen-ourworldindata/getting-started/)
+- [The catalog](https://ghostiee-11.github.io/lumen-ourworldindata/catalog/) — how discovery works and what is reachable
+- [Examples](https://ghostiee-11.github.io/lumen-ourworldindata/examples/)
+- [API reference](https://ghostiee-11.github.io/lumen-ourworldindata/api/)
+- [Limitations](https://ghostiee-11.github.io/lumen-ourworldindata/limitations/) — read before publishing anything based on this
 
 ## ❤️ Contributing
 
