@@ -39,6 +39,22 @@ def normalize_name(name: str) -> str:
     return "".join(char if char.isalnum() else "_" for char in name).strip("_").lower()
 
 
+def chart_slug(reference: str) -> str:
+    """Accept a chart slug or any grapher URL and return the slug.
+
+    People cite Our World In Data by pasting a URL, so a control that only took a bare
+    slug would reject the most common way of referring to a chart. Query strings and a
+    trailing .csv are stripped too, since both appear in URLs copied from the site.
+    """
+    slug = reference.strip().split("?")[0].split("#")[0].rstrip("/")
+    if "/" in slug:
+        slug = slug.rsplit("/", 1)[-1]
+    for suffix in (".csv", ".metadata.json", ".zip", ".config.json"):
+        if slug.endswith(suffix):
+            slug = slug[: -len(suffix)]
+    return slug
+
+
 def search_charts(query: str = "", limit: int = MAX_HITS) -> pd.DataFrame:
     """Search the published OWID charts, returning one row per chart."""
     response = httpx.get(
