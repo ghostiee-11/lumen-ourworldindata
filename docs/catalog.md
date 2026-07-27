@@ -127,6 +127,16 @@ Anything reading both has to cope with either. The operations take `country` and
 parameters for this reason, and `lumen_owid.utils` provides `country_column`, `year_column` and
 `code_column` to detect them.
 
+## Two ways in
+
+| You have | Use |
+|---|---|
+| A question | `OWIDSourceControls` — browse or search the catalog |
+| A slug or a grapher URL | `OWIDChartControls` — load it directly |
+
+Search is not a substitute for the second. Searching for the exact slug
+`co2-emissions-per-capita` returns `co-emissions-per-capita`, a different chart.
+
 ## Loading
 
 Loading is deliberately thin. `DuckDBSource` already builds a read expression from a URL, so the

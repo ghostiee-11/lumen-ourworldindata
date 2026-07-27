@@ -97,6 +97,32 @@ except UnreadableDataset as error:
 `OWIDSourceControls` catches this and turns it into a user-facing message, so the app never
 raises on a blocked chart.
 
+## OWIDChartControls
+
+Load one specific chart, by slug or by pasted grapher URL. Built on
+`URLSourceControls`, so it contributes a text field to the UI and a typed tool to the
+agent, but the download is replaced by `OWIDSource.add_chart` to keep the `sample_size`
+fix and the documentation.
+
+```python
+from lumen.ai.ui import ExplorerUI
+from lumen_owid import OWIDChartControls, OWIDSourceControls
+
+ExplorerUI(source_controls=[OWIDSourceControls, OWIDChartControls]).servable()
+```
+
+The two controls answer different questions. `OWIDSourceControls` answers "which chart do
+I want", `OWIDChartControls` answers "load the one I already have".
+
+!!! warning "Searching for a slug is not the same as loading it"
+    Searching for `co2-emissions-per-capita` returns `co-emissions-per-capita`, a
+    different chart. A known slug needs a direct path.
+
+### `chart_slug(reference)`
+
+Take the slug out of anything that identifies a chart: a bare slug, a grapher URL, one
+with a `.csv` suffix, or one carrying a query string.
+
 ## Search functions
 
 ### `search_charts(query="", limit=100)`

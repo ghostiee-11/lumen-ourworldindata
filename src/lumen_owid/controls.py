@@ -4,10 +4,19 @@ from __future__ import annotations
 import asyncio
 
 import pandas as pd
+import param
 from lumen.ai.controls import CatalogSourceControls
-from lumen.ai.controls.ingest import SourceResult
+from lumen.ai.controls.ingest import SourceResult, URLSourceControls
 
-from .api import MAX_HITS, charts_to_catalog, search_catalog, search_charts
+from .api import (
+    GRAPHER,
+    MAX_HITS,
+    chart_slug,
+    charts_to_catalog,
+    normalize_name,
+    search_catalog,
+    search_charts,
+)
 from .source import OWIDSource, UnreadableDataset
 
 
@@ -79,3 +88,48 @@ class OWIDSourceControls(CatalogSourceControls):
             return None
         self.catalog_df = pd.concat([self.catalog_df, hits.head(1)], ignore_index=True)
         return len(self.catalog_df) - 1
+
+
+class OWIDChartControls(URLSourceControls):
+    """Load one specific Our World In Data chart, by slug or by pasted URL.
+
+    The catalog controls answer "which chart do I want"; this answers "load the one I
+    already have". Searching for a slug is not a substitute: searching for
+    ``co2-emissions-per-capita`` returns ``co-emissions-per-capita``, a different chart.
+    Since people cite OWID by pasting a grapher URL, that has to be a first-class way in.
+
+    Built on ``URLSourceControls`` for the widget and the generated agent tool, but the
+    download is replaced: OWID chart CSVs need an explicit ``sample_size`` and carry
+    documentation worth attaching, neither of which a generic download provides.
+    """
+
+    label = "Our World In Data chart"
+
+    slug = param.String(default="", doc="""
+        Chart slug, or any grapher URL to take it from.""")
+
+    url_template = f"{GRAPHER}/{{slug}}.csv"
+
+    _query_params = ["slug"]
+
+    def __init__(self, **params):
+        super().__init__(**params)
+        self._source = OWIDSource()
+
+    async def _fetch_data(self, action_name: str, **params) -> SourceResult:
+        """Load the chart through OWIDSource rather than a generic download."""
+        reference = params.get("slug") or self.slug
+        if not reference:
+            return SourceResult.empty("Give a chart slug or a grapher URL.")
+
+        slug = chart_slug(reference)
+        self.progress(f"Loading {slug}…")
+        try:
+            source = await asyncio.to_thread(self._source.add_chart, slug)
+        except UnreadableDataset as error:
+            return SourceResult.empty(f"{slug} cannot be loaded. {error}")
+
+        self._source = source
+        self._register_source_output(source)
+        table = normalize_name(slug)
+        return SourceResult.from_source(source, table, message=f"Loaded {slug}.")

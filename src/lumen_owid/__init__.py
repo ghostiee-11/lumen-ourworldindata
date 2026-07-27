@@ -17,7 +17,7 @@ from .api import (
     search_charts,
     search_indicators,
 )
-from .controls import OWIDSourceControls
+from .controls import OWIDChartControls, OWIDSourceControls
 from .operations import (
     IndexToBaseYear,
     LatestPerCountry,
@@ -37,6 +37,7 @@ __all__ = [
     "IndexToBaseYear",
     "LatestPerCountry",
     "MapAcrossCountries",
+    "OWIDChartControls",
     "OWIDSource",
     "OWIDSourceControls",
     "OnlyCountries",

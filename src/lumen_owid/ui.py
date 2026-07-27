@@ -5,7 +5,7 @@ from lumen.ai.llm import Llm
 from lumen.ai.ui import ExplorerUI
 
 from .analysis import ANALYSES
-from .controls import OWIDSourceControls
+from .controls import OWIDChartControls, OWIDSourceControls
 
 
 def build_ui(llm: Llm | None = None, **params) -> ExplorerUI:
@@ -15,7 +15,7 @@ def build_ui(llm: Llm | None = None, **params) -> ExplorerUI:
     or through the agent's search, so the app starts empty and stays that way until
     a question needs data.
     """
-    params.setdefault("source_controls", [OWIDSourceControls])
+    params.setdefault("source_controls", [OWIDSourceControls, OWIDChartControls])
     params.setdefault("analyses", ANALYSES)
     params.setdefault("title", "Our World In Data")
     if llm is not None:
