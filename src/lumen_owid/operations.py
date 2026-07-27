@@ -11,7 +11,10 @@ from __future__ import annotations
 from typing import ClassVar
 
 import param
+from lumen.transforms.base import Transform
 from lumen.transforms.sql import SQLTransform
+
+from .utils import code_column, country_column, country_geometry
 
 
 class OWIDTransform(SQLTransform):
@@ -148,3 +151,38 @@ class IndexToBaseYear(OWIDTransform):
             f'SELECT *, ("{self.value}" / NULLIF({baseline}, 0)) * 100 '
             f'AS "{self.value}_indexed" FROM ({sql_in})'
         )
+
+
+class WithGeometry(Transform):
+    """Attach country boundaries so a frame can be drawn as a map.
+
+    This is the only part of a choropleth that is specific to Our World In Data.
+    Rendering is not: once boundaries are present, ``hvPlotView(kind="polygons",
+    geo=True, c=...)`` draws the map, and the model can choose that or anything else.
+    Without them hvPlot silently returns a single-row plot rather than failing, which
+    is the failure this transform exists to prevent.
+
+    Matching is on ISO alpha-3 where the frame has a code column, which every chart
+    CSV does, and on country name otherwise. Rows that match no boundary, typically
+    OWID aggregates such as continents, are dropped by design: they have nothing to
+    draw. Use :class:`OnlyCountries` first if you would rather see them excluded
+    explicitly in SQL.
+    """
+
+    transform_type: ClassVar[str] = "owid_with_geometry"
+
+    def apply(self, table):
+        geometry = country_geometry()
+        code = code_column(table)
+        if code is not None and table[code].notna().any():
+            left, right = "iso_a3", code
+        else:
+            right = country_column(table)
+            if right is None:
+                return table
+            left = "country"
+        # DuckDB hands back pandas' arrow-backed "str" dtype while the geometry uses
+        # object, and pandas matches nothing across those two without complaining.
+        table = table.assign(**{right: table[right].astype("object")})
+        return geometry.merge(table, left_on=left, right_on=right, how="inner",
+                              suffixes=("", "_owid"))

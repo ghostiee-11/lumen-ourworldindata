@@ -1,4 +1,7 @@
+from unittest.mock import patch
+
 import duckdb
+import pandas as pd
 import pytest
 
 from lumen_owid.operations import (
@@ -6,6 +9,7 @@ from lumen_owid.operations import (
     LatestPerCountry,
     OnlyCountries,
     PerCapita,
+    WithGeometry,
 )
 
 
@@ -90,3 +94,28 @@ def test_only_countries_composes_with_latest(connection):
     ).df()
     assert set(result.Entity) == {"France", "Japan"}
     assert result.Year.tolist() == [2020, 2020]
+
+
+def test_with_geometry_attaches_boundaries_and_drops_unmappable_rows(owid_frame):
+    """Aggregates have no boundary to draw, so an inner join is the honest shape."""
+    # geopandas and shapely are the optional geo extra, so they load only here.
+    import geopandas as gpd
+    from shapely.geometry import Point
+
+    boundaries = gpd.GeoDataFrame({
+        "iso_a3": ["FRA", "JPN"],
+        "country": ["France", "Japan"],
+        "geometry": [Point(2, 48).buffer(1), Point(139, 35).buffer(1)],
+    })
+    # Patched where it is used: operations imports the name at module load.
+    with patch("lumen_owid.operations.country_geometry", return_value=boundaries):
+        result = WithGeometry().apply(owid_frame)
+
+    assert set(result.Entity) == {"France", "Japan"}
+    assert "geometry" in result.columns
+    assert "Africa" not in set(result.Entity)
+
+
+def test_with_geometry_is_a_no_op_without_a_country_column():
+    frame = pd.DataFrame({"value": [1, 2]})
+    assert WithGeometry().apply(frame).equals(frame)

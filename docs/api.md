@@ -246,57 +246,34 @@ Rebase each country to 100. Adds a `<value>_indexed` column.
 Turns levels into relative change, which is how OWID itself presents most long-run comparisons
 between countries starting from very different levels.
 
-## Views
+## WithGeometry
 
-### OWIDChoropleth
+`transform_type: owid_with_geometry`
 
-```python
-class OWIDChoropleth(View)
-```
-
-`view_type: owid_choropleth`. A world map of one measure, one value per country. Requires the
-`geo` extra.
-
-| Parameter | Default | Meaning |
-|---|---|---|
-| `value` | `None` | Column to shade by. Defaults to the first numeric column |
-| `code` | `None` | ISO alpha-3 column. Detected when unset |
-| `country` | `None` | Country name column, used when no ISO code exists |
-| `cmap` | `"viridis"` | Colormap |
-
-Matches on ISO alpha-3 where available, which every chart CSV provides as `Code`, and falls back
-to country names otherwise. Rows matching no boundary, usually OWID aggregates such as
-continents and income groups, are counted and reported beneath the map rather than dropped
-silently.
-
-### OWIDTimeSeries
+Attach country boundaries so a frame can be drawn as a map. A `Transform`, not a view.
 
 ```python
-class OWIDTimeSeries(View)
+from lumen.pipeline import Pipeline
+from lumen.views.base import hvPlotView
+from lumen_owid import WithGeometry
+
+mapped = Pipeline(source=source, table="latest", transforms=[WithGeometry()])
+hvPlotView(pipeline=mapped, kind="polygons", c="Life expectancy", geo=True)
 ```
 
-`view_type: owid_time_series`. One measure over time, one line per country. The
-counterpart to the map: a map answers "who is high and who is low", a line answers
-"what changed".
+This is the only part of a choropleth that is specific to Our World In Data. Rendering
+is not: `hvPlotView` draws the map once boundaries are present, and the model is free to
+choose that or anything else. There is deliberately no `OWIDChoropleth` or
+`OWIDTimeSeries` class, because a line chart is already
+`hvPlotView(kind="line", x=year, y=value, by=country)`.
 
-| Parameter | Default | Meaning |
-|---|---|---|
-| `value` | `None` | Column to plot. Defaults to the first numeric column |
-| `countries` | `[]` | Countries to plot. Empty means the best-covered ones |
-| `max_series` | `8` | Maximum number of lines |
-| `country` / `year` | `None` | Column names. Detected when unset |
+Matching is on ISO alpha-3 where the frame has a code column, and on country name
+otherwise. Rows matching no boundary, typically OWID aggregates, are dropped: they have
+nothing to draw. Requires the `geo` extra.
 
-An OWID table carries every country it has data for, often over two hundred, so the
-series are capped and the omission is reported beneath the chart rather than hidden.
-
-!!! warning "What \"best covered\" selects for"
-    Ranking by observation count favours countries with long statistical records, which
-    on a historical series means wealthy ones. Life expectancy defaults to eight Western
-    European countries. Pass `countries` explicitly whenever the comparison matters.
-
-!!! note
-    The parameter is `max_series`, not `limit`, because `View.limit` already exists and
-    truncates rows.
+!!! warning "Without it, hvPlot fails quietly"
+    `kind="polygons"` on a frame with no geometry returns a single-row plot rather than
+    an error. That silent failure is the reason this transform exists.
 
 ## Analyses
 

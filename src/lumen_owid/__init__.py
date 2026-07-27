@@ -18,10 +18,15 @@ from .api import (
     search_indicators,
 )
 from .controls import OWIDSourceControls
-from .operations import IndexToBaseYear, LatestPerCountry, OnlyCountries, PerCapita
+from .operations import (
+    IndexToBaseYear,
+    LatestPerCountry,
+    OnlyCountries,
+    PerCapita,
+    WithGeometry,
+)
 from .source import OWIDSource, UnreadableDataset
 from .ui import build_ui
-from .views import OWIDChoropleth, OWIDTimeSeries
 
 __version__ = "0.1.0"
 
@@ -32,13 +37,12 @@ __all__ = [
     "IndexToBaseYear",
     "LatestPerCountry",
     "MapAcrossCountries",
-    "OWIDChoropleth",
     "OWIDSource",
     "OWIDSourceControls",
-    "OWIDTimeSeries",
     "OnlyCountries",
     "PerCapita",
     "UnreadableDataset",
+    "WithGeometry",
     "build_ui",
     "chart_metadata",
     "search_catalog",

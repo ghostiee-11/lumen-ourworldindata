@@ -140,15 +140,31 @@ source.get("latest")
 
 ## Map a measure
 
+Attach boundaries with a transform, then draw with any renderer:
+
 ```python
 from lumen.pipeline import Pipeline
-from lumen_owid import OWIDChoropleth
+from lumen.views.base import hvPlotView
+from lumen_owid import WithGeometry
 
-OWIDChoropleth(pipeline=Pipeline(source=source, table="latest"), value="Population")
+mapped = Pipeline(source=source, table="latest", transforms=[WithGeometry()])
+hvPlotView(pipeline=mapped, kind="polygons", c="Population", geo=True)
 ```
 
-Countries match on the ISO alpha-3 `Code` column. Rows matching no boundary, usually OWID
-aggregates such as continents and income groups, are counted and reported beneath the map.
+Countries match on the ISO alpha-3 `Code` column, falling back to name. Rows matching no
+boundary, usually OWID aggregates such as continents, are dropped since there is nothing
+to draw for them.
+
+## Plot a series over time
+
+No OWID-specific class is needed; the columns are the only thing worth knowing:
+
+```python
+hvPlotView(
+    pipeline=Pipeline(source=source, table="life_expectancy"),
+    kind="line", x="Year", y="Life expectancy", by=["Entity"],
+)
+```
 
 ## Run an analysis directly
 
