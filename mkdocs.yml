@@ -18,6 +18,7 @@ nav:
   - Getting started: getting-started.md
   - The catalog: catalog.md
   - Examples: examples.md
+  - Extending Lumen: extending-lumen.md
   - API reference: api.md
   - Limitations: limitations.md
 markdown_extensions:

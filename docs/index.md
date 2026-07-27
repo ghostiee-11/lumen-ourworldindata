@@ -73,5 +73,6 @@ classes would only take choices away from the model.
 - [Getting started](getting-started.md) — install, run, and the first few questions to try
 - [The catalog](catalog.md) — how discovery works and what is reachable
 - [Examples](examples.md) — worked code for the common tasks
+- [Extending Lumen](extending-lumen.md) — how to do this for your own data source
 - [API reference](api.md) — every public class and function
 - [Limitations](limitations.md) — what this data can and cannot support

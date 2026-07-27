@@ -119,6 +119,7 @@ Full docs: **<https://ghostiee-11.github.io/lumen-ourworldindata/>**
 - [Getting started](https://ghostiee-11.github.io/lumen-ourworldindata/getting-started/)
 - [The catalog](https://ghostiee-11.github.io/lumen-ourworldindata/catalog/) — how discovery works and what is reachable
 - [Examples](https://ghostiee-11.github.io/lumen-ourworldindata/examples/)
+- [Extending Lumen](https://ghostiee-11.github.io/lumen-ourworldindata/extending-lumen/) — how to do this for your own data source
 - [API reference](https://ghostiee-11.github.io/lumen-ourworldindata/api/)
 - [Limitations](https://ghostiee-11.github.io/lumen-ourworldindata/limitations/) — read before publishing anything based on this
 
