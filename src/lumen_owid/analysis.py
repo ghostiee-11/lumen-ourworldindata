@@ -12,10 +12,15 @@ import panel as pn
 import param
 from lumen.ai.analysis import Analysis
 from lumen.pipeline import Pipeline
+from lumen.views.base import hvPlotView
 
-from .operations import IndexToBaseYear, LatestPerCountry, OnlyCountries
+from .operations import (
+    IndexToBaseYear,
+    LatestPerCountry,
+    OnlyCountries,
+    WithGeometry,
+)
 from .utils import code_column, country_column, value_columns, year_column
-from .views import OWIDChoropleth
 
 
 class OWIDAnalysis(Analysis):
@@ -66,7 +71,11 @@ class MapAcrossCountries(OWIDAnalysis):
             sql = OnlyCountries(code=code).apply(sql)
         table = f"{pipeline.table}_owid_mapped"
         source = pipeline.source.create_sql_expr_source({table: sql}, materialize=True)
-        return OWIDChoropleth(pipeline=Pipeline(source=source, table=table), value=value)
+        # WithGeometry supplies the boundaries; hvPlotView does the drawing. Nothing
+        # here needs a bespoke view class.
+        mapped = Pipeline(source=source, table=table, transforms=[WithGeometry()])
+        return hvPlotView(pipeline=mapped, kind="polygons", c=value, geo=True,
+                          responsive=True, height=460)
 
 
 class CompareCountries(OWIDAnalysis):

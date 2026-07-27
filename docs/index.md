@@ -56,10 +56,17 @@ country and year, with no entity harmonization on your side, because OWID alread
 | [`LatestPerCountry`](api.md#latestpercountry) | Each country's most recent non-null observation |
 | [`PerCapita`](api.md#percapita) | Divide a total by population, guarding against divide-by-zero |
 | [`IndexToBaseYear`](api.md#indextobaseyear) | Rebase each country to 100 so trajectories compare |
-| [`OWIDChoropleth`](api.md#owidchoropleth) | World map, matching OWID's own map tab |
+| [`WithGeometry`](api.md#withgeometry) | Attach country boundaries so any renderer can draw a map |
 | [`MapAcrossCountries`](api.md#analyses) | Analysis: map one measure worldwide |
 | [`CompareCountries`](api.md#analyses) | Analysis: several countries on one time axis |
 | [`CorrelateIndicators`](api.md#analyses) | Analysis: scatter two measures, report Pearson r |
+
+## What this deliberately does not do
+
+There is no OWID chart class. Rendering is Lumen's job: a line over time is
+`hvPlotView(kind="line", x=year, y=value, by=country)`, and a map is the same view with
+`kind="polygons"` once `WithGeometry` has attached boundaries. Wrapping those in bespoke
+classes would only take choices away from the model.
 
 ## Next
 

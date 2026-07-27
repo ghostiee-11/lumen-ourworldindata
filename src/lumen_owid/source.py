@@ -19,6 +19,10 @@ from .api import (
 # httpfs lets DuckDB range-read the remote CSV and parquet files without downloading.
 INITIALIZERS = ["INSTALL httpfs;", "LOAD httpfs;"]
 
+# Our World In Data is a small nonprofit serving these files for free. Three at a time
+# is enough to hide most of the per-request latency without behaving like a crawler.
+MAX_CONCURRENT_FETCHES = 3
+
 
 def chart_read_expression(slug: str) -> str:
     """SQL that reads a chart CSV in place.
@@ -81,7 +85,7 @@ class OWIDSource(DuckDBSource):
         if not slugs:
             return self, {}
 
-        with ThreadPoolExecutor(max_workers=min(len(slugs), 8)) as pool:
+        with ThreadPoolExecutor(max_workers=min(len(slugs), MAX_CONCURRENT_FETCHES)) as pool:
             fetched = list(pool.map(self._describe, slugs))
 
         source, failures = self, {}
