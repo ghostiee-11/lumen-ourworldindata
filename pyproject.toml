@@ -32,13 +32,17 @@ dependencies = [
 # The choropleth needs country polygons; everything else works without them.
 geo = ["cartopy", "geopandas", "geoviews"]
 dev = ["pytest", "pytest-asyncio", "ruff"]
+# mkdocs 2.0 removes the plugin and theming systems with no migration path, so the
+# docs build is pinned below it rather than breaking on release day.
+docs = ["mkdocs<2", "mkdocs-material"]
 
 [project.scripts]
 lumen-owid = "lumen_owid.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/holoviz-topics/lumen-ourworldindata"
-Issues = "https://github.com/holoviz-topics/lumen-ourworldindata/issues"
+Homepage = "https://github.com/ghostiee-11/lumen-ourworldindata"
+Documentation = "https://ghostiee-11.github.io/lumen-ourworldindata/"
+Issues = "https://github.com/ghostiee-11/lumen-ourworldindata/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/lumen_owid"]
