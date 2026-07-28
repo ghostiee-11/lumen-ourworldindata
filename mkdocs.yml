@@ -1,6 +1,6 @@
 site_name: lumen-ourworldindata
 site_description: Chat with Our World In Data
-repo_url: https://github.com/ghostiee-11/lumen-ourworldindata
+repo_url: https://github.com/holoviz-topics/lumen-ourworldindata
 theme:
   name: material
   features:
