@@ -1,8 +1,6 @@
 # 🌍 lumen-ourworldindata
 
-[![CI](https://img.shields.io/github/actions/workflow/status/ghostiee-11/lumen-ourworldindata/ci.yml?style=flat-square&branch=main)](https://github.com/ghostiee-11/lumen-ourworldindata/actions/workflows/ci.yml)
-[![pypi-version](https://img.shields.io/pypi/v/lumen-ourworldindata.svg?logo=pypi&logoColor=white&style=flat-square)](https://pypi.org/project/lumen-ourworldindata)
-[![python-version](https://img.shields.io/pypi/pyversions/lumen-ourworldindata?logoColor=white&logo=python&style=flat-square)](https://pypi.org/project/lumen-ourworldindata)
+[![CI](https://img.shields.io/github/actions/workflow/status/holoviz-topics/lumen-ourworldindata/ci.yml?style=flat-square&branch=main)](https://github.com/holoviz-topics/lumen-ourworldindata/actions/workflows/ci.yml)
 
 ## Overview
 
@@ -33,16 +31,16 @@ and the reshapes and views that OWID's country/year tables always want.
 
 ## Installation
 
-Install it via `pip`:
+Not yet on PyPI. Install from source:
 
 ```bash
-pip install lumen-ourworldindata
+pip install "git+https://github.com/holoviz-topics/lumen-ourworldindata"
 ```
 
 The world map needs country polygons, which are an optional extra:
 
 ```bash
-pip install "lumen-ourworldindata[geo]"
+pip install "lumen-ourworldindata[geo] @ git+https://github.com/holoviz-topics/lumen-ourworldindata"
 ```
 
 ## Usage
@@ -91,7 +89,7 @@ those are listed in search but cannot be loaded, and the app says so plainly rat
 ## Development
 
 ```bash
-git clone https://github.com/ghostiee-11/lumen-ourworldindata
+git clone https://github.com/holoviz-topics/lumen-ourworldindata
 cd lumen-ourworldindata
 ```
 
@@ -114,14 +112,14 @@ pytest tests -m network         # live, run on demand
 
 ## Documentation
 
-Full docs: **<https://ghostiee-11.github.io/lumen-ourworldindata/>**
+Full docs: **<https://holoviz-topics.github.io/lumen-ourworldindata/>**
 
-- [Getting started](https://ghostiee-11.github.io/lumen-ourworldindata/getting-started/)
-- [The catalog](https://ghostiee-11.github.io/lumen-ourworldindata/catalog/) — how discovery works and what is reachable
-- [Examples](https://ghostiee-11.github.io/lumen-ourworldindata/examples/)
-- [Extending Lumen](https://ghostiee-11.github.io/lumen-ourworldindata/extending-lumen/) — how to do this for your own data source
-- [API reference](https://ghostiee-11.github.io/lumen-ourworldindata/api/)
-- [Limitations](https://ghostiee-11.github.io/lumen-ourworldindata/limitations/) — read before publishing anything based on this
+- [Getting started](https://holoviz-topics.github.io/lumen-ourworldindata/getting-started/)
+- [The catalog](https://holoviz-topics.github.io/lumen-ourworldindata/catalog/) — how discovery works and what is reachable
+- [Examples](https://holoviz-topics.github.io/lumen-ourworldindata/examples/)
+- [Extending Lumen](https://holoviz-topics.github.io/lumen-ourworldindata/extending-lumen/) — how to do this for your own data source
+- [API reference](https://holoviz-topics.github.io/lumen-ourworldindata/api/)
+- [Limitations](https://holoviz-topics.github.io/lumen-ourworldindata/limitations/) — read before publishing anything based on this
 
 ## ❤️ Contributing
 

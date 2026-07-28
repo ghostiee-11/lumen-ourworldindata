@@ -40,9 +40,9 @@ docs = ["mkdocs<2", "mkdocs-material"]
 lumen-owid = "lumen_owid.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/ghostiee-11/lumen-ourworldindata"
-Documentation = "https://ghostiee-11.github.io/lumen-ourworldindata/"
-Issues = "https://github.com/ghostiee-11/lumen-ourworldindata/issues"
+Homepage = "https://github.com/holoviz-topics/lumen-ourworldindata"
+Documentation = "https://holoviz-topics.github.io/lumen-ourworldindata/"
+Issues = "https://github.com/holoviz-topics/lumen-ourworldindata/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/lumen_owid"]
